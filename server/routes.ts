@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTipSchema, insertProductSchema, insertRoutineSchema, insertFavoriteSchema } from "@shared/schema";
+import { insertUserSchema, insertTipSchema, insertProductSchema, insertRoutineSchema, insertFavoriteSchema, insertSocialPostSchema, insertSocialAccountSchema } from "@shared/schema";
 import { generateSkincareTip, generateProductReview, generateRoutineRecommendation } from "./services/gemini";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -274,6 +274,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activities);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch user activity", error });
+    }
+  });
+
+  // Social media account routes
+  app.get("/api/users/:userId/social-accounts", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const accounts = await storage.getSocialAccounts(userId);
+      res.json(accounts);
+    } catch (error) {
+      console.error("Error fetching social accounts:", error);
+      res.status(500).json({ message: "Failed to fetch social accounts" });
+    }
+  });
+
+  app.post("/api/social-accounts", async (req, res) => {
+    try {
+      const result = insertSocialAccountSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid social account data" });
+      }
+
+      const account = await storage.connectSocialAccount(result.data);
+      res.json(account);
+    } catch (error) {
+      console.error("Error connecting social account:", error);
+      res.status(500).json({ message: "Failed to connect social account" });
+    }
+  });
+
+  app.patch("/api/social-accounts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const account = await storage.updateSocialAccount(id, req.body);
+      
+      if (!account) {
+        return res.status(404).json({ message: "Social account not found" });
+      }
+
+      res.json(account);
+    } catch (error) {
+      console.error("Error updating social account:", error);
+      res.status(500).json({ message: "Failed to update social account" });
+    }
+  });
+
+  app.delete("/api/social-accounts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.disconnectSocialAccount(id);
+      res.json({ message: "Social account disconnected" });
+    } catch (error) {
+      console.error("Error disconnecting social account:", error);
+      res.status(500).json({ message: "Failed to disconnect social account" });
+    }
+  });
+
+  // Social posts routes
+  app.get("/api/users/:userId/social-posts", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+      
+      const posts = await storage.getSocialPosts(userId, limit);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching social posts:", error);
+      res.status(500).json({ message: "Failed to fetch social posts" });
+    }
+  });
+
+  app.get("/api/users/:userId/scheduled-posts", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const posts = await storage.getScheduledPosts(userId);
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching scheduled posts:", error);
+      res.status(500).json({ message: "Failed to fetch scheduled posts" });
+    }
+  });
+
+  app.post("/api/social-posts", async (req, res) => {
+    try {
+      const result = insertSocialPostSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid social post data" });
+      }
+
+      const post = await storage.createSocialPost(result.data);
+      res.json(post);
+    } catch (error) {
+      console.error("Error creating social post:", error);
+      res.status(500).json({ message: "Failed to create social post" });
+    }
+  });
+
+  app.patch("/api/social-posts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const post = await storage.updateSocialPost(id, req.body);
+      
+      if (!post) {
+        return res.status(404).json({ message: "Social post not found" });
+      }
+
+      res.json(post);
+    } catch (error) {
+      console.error("Error updating social post:", error);
+      res.status(500).json({ message: "Failed to update social post" });
+    }
+  });
+
+  app.delete("/api/social-posts/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteSocialPost(id);
+      res.json({ message: "Social post deleted" });
+    } catch (error) {
+      console.error("Error deleting social post:", error);
+      res.status(500).json({ message: "Failed to delete social post" });
     }
   });
 

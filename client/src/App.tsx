@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Tips from "@/pages/tips";
 import Products from "@/pages/products";
 import Routine from "@/pages/routine";
+import Social from "@/pages/social";
 import Navbar from "@/components/layout/navbar";
 
 function Router() {
@@ -21,6 +22,7 @@ function Router() {
         <Route path="/tips" component={Tips} />
         <Route path="/products" component={Products} />
         <Route path="/routine" component={Routine} />
+        <Route path="/social" component={Social} />
         <Route component={NotFound} />
       </Switch>
     </div>

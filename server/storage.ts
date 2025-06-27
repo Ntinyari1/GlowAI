@@ -5,6 +5,8 @@ import {
   routines,
   favorites,
   userActivity,
+  socialPosts,
+  socialAccounts,
   type User,
   type InsertUser,
   type Tip,
@@ -17,6 +19,10 @@ import {
   type InsertFavorite,
   type UserActivity,
   type InsertUserActivity,
+  type SocialPost,
+  type InsertSocialPost,
+  type SocialAccount,
+  type InsertSocialAccount,
 } from "@shared/schema";
 
 export interface IStorage {
@@ -52,6 +58,19 @@ export interface IStorage {
   // User activity operations
   getUserActivity(userId: number, limit?: number): Promise<UserActivity[]>;
   addUserActivity(activity: InsertUserActivity): Promise<UserActivity>;
+
+  // Social media operations
+  getSocialAccounts(userId: number): Promise<SocialAccount[]>;
+  connectSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
+  updateSocialAccount(id: number, updates: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined>;
+  disconnectSocialAccount(id: number): Promise<void>;
+
+  // Social posts operations
+  getSocialPosts(userId: number, limit?: number): Promise<SocialPost[]>;
+  createSocialPost(post: InsertSocialPost): Promise<SocialPost>;
+  updateSocialPost(id: number, updates: Partial<InsertSocialPost>): Promise<SocialPost | undefined>;
+  deleteSocialPost(id: number): Promise<void>;
+  getScheduledPosts(userId: number): Promise<SocialPost[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -61,6 +80,8 @@ export class MemStorage implements IStorage {
   private routines: Map<number, Routine> = new Map();
   private favorites: Map<number, Favorite> = new Map();
   private userActivity: Map<number, UserActivity> = new Map();
+  private socialPosts: Map<number, SocialPost> = new Map();
+  private socialAccounts: Map<number, SocialAccount> = new Map();
   
   private currentUserId = 1;
   private currentTipId = 1;
@@ -68,9 +89,12 @@ export class MemStorage implements IStorage {
   private currentRoutineId = 1;
   private currentFavoriteId = 1;
   private currentActivityId = 1;
+  private currentSocialPostId = 1;
+  private currentSocialAccountId = 1;
 
   constructor() {
     this.seedData();
+    this.seedSocialData();
   }
 
   private seedData() {
@@ -361,6 +385,165 @@ export class MemStorage implements IStorage {
     };
     this.userActivity.set(id, activity);
     return activity;
+  }
+
+  private seedSocialData() {
+    // Add demo social accounts
+    this.socialAccounts.set(1, {
+      id: 1,
+      userId: 1,
+      platform: "instagram",
+      accountId: "instagram_1",
+      accessToken: null,
+      refreshToken: null,
+      status: "connected",
+      followers: 12500,
+      engagement: "8.2",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    this.socialAccounts.set(2, {
+      id: 2,
+      userId: 1,
+      platform: "facebook",
+      accountId: "facebook_1",
+      accessToken: null,
+      refreshToken: null,
+      status: "connected",
+      followers: 8900,
+      engagement: "5.7",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // Add demo scheduled posts
+    const now = new Date();
+    const todayEvening = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0);
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    
+    this.socialPosts.set(1, {
+      id: 1,
+      userId: 1,
+      platform: "instagram",
+      content: "Morning skincare routine for dry skin in winter ❄️✨",
+      scheduledFor: todayEvening,
+      status: "scheduled",
+      routineId: null,
+      tipId: 1,
+      createdAt: new Date(),
+      publishedAt: null,
+    });
+
+    this.socialPosts.set(2, {
+      id: 2,
+      userId: 1,
+      platform: "twitter",
+      content: "Quick tip: Double cleansing method for makeup removal 💄",
+      scheduledFor: tomorrow,
+      status: "scheduled",
+      routineId: null,
+      tipId: 2,
+      createdAt: new Date(),
+      publishedAt: null,
+    });
+  }
+
+  // Social media operations
+  async getSocialAccounts(userId: number): Promise<SocialAccount[]> {
+    return Array.from(this.socialAccounts.values()).filter(account => account.userId === userId);
+  }
+
+  async connectSocialAccount(insertAccount: InsertSocialAccount): Promise<SocialAccount> {
+    const id = this.currentSocialAccountId++;
+    const account: SocialAccount = {
+      ...insertAccount,
+      id,
+      userId: insertAccount.userId || null,
+      accessToken: insertAccount.accessToken || null,
+      refreshToken: insertAccount.refreshToken || null,
+      status: insertAccount.status || "connected",
+      followers: insertAccount.followers || 0,
+      engagement: insertAccount.engagement || "0.00",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.socialAccounts.set(id, account);
+    return account;
+  }
+
+  async updateSocialAccount(id: number, updates: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined> {
+    const account = this.socialAccounts.get(id);
+    if (!account) return undefined;
+
+    const updatedAccount: SocialAccount = {
+      ...account,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.socialAccounts.set(id, updatedAccount);
+    return updatedAccount;
+  }
+
+  async disconnectSocialAccount(id: number): Promise<void> {
+    const account = this.socialAccounts.get(id);
+    if (account) {
+      account.status = "disconnected";
+      account.updatedAt = new Date();
+      this.socialAccounts.set(id, account);
+    }
+  }
+
+  async getSocialPosts(userId: number, limit = 10): Promise<SocialPost[]> {
+    return Array.from(this.socialPosts.values())
+      .filter(post => post.userId === userId)
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime())
+      .slice(0, limit);
+  }
+
+  async createSocialPost(insertPost: InsertSocialPost): Promise<SocialPost> {
+    const id = this.currentSocialPostId++;
+    const post: SocialPost = {
+      ...insertPost,
+      id,
+      userId: insertPost.userId || null,
+      scheduledFor: insertPost.scheduledFor || null,
+      status: insertPost.status || "draft",
+      routineId: insertPost.routineId || null,
+      tipId: insertPost.tipId || null,
+      createdAt: new Date(),
+      publishedAt: null,
+    };
+    this.socialPosts.set(id, post);
+    return post;
+  }
+
+  async updateSocialPost(id: number, updates: Partial<InsertSocialPost>): Promise<SocialPost | undefined> {
+    const post = this.socialPosts.get(id);
+    if (!post) return undefined;
+
+    const updatedPost: SocialPost = {
+      ...post,
+      ...updates,
+    };
+    this.socialPosts.set(id, updatedPost);
+    return updatedPost;
+  }
+
+  async deleteSocialPost(id: number): Promise<void> {
+    this.socialPosts.delete(id);
+  }
+
+  async getScheduledPosts(userId: number): Promise<SocialPost[]> {
+    const now = new Date();
+    return Array.from(this.socialPosts.values())
+      .filter(post => 
+        post.userId === userId && 
+        post.status === "scheduled" && 
+        post.scheduledFor && 
+        new Date(post.scheduledFor) > now
+      )
+      .sort((a, b) => new Date(a.scheduledFor!).getTime() - new Date(b.scheduledFor!).getTime());
   }
 }
 

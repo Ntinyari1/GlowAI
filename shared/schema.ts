@@ -73,6 +73,35 @@ export const userActivity = pgTable("user_activity", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Social media posts table
+export const socialPosts = pgTable("social_posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  platform: text("platform").notNull(), // instagram, facebook, twitter
+  content: text("content").notNull(),
+  scheduledFor: timestamp("scheduled_for"),
+  status: text("status").default("draft"), // draft, scheduled, published, failed
+  routineId: integer("routine_id").references(() => routines.id),
+  tipId: integer("tip_id").references(() => tips.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  publishedAt: timestamp("published_at"),
+});
+
+// Social media accounts table
+export const socialAccounts = pgTable("social_accounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
+  platform: text("platform").notNull(),
+  accountId: text("account_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  status: text("status").default("connected"), // connected, disconnected, pending
+  followers: integer("followers").default(0),
+  engagement: text("engagement").default("0.00"), // stored as string for decimal precision
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -106,6 +135,18 @@ export const insertUserActivitySchema = createInsertSchema(userActivity).omit({
   createdAt: true,
 });
 
+export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({
+  id: true,
+  createdAt: true,
+  publishedAt: true,
+});
+
+export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -124,3 +165,9 @@ export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
 
 export type UserActivity = typeof userActivity.$inferSelect;
 export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
+
+export type SocialPost = typeof socialPosts.$inferSelect;
+export type InsertSocialPost = z.infer<typeof insertSocialPostSchema>;
+
+export type SocialAccount = typeof socialAccounts.$inferSelect;
+export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;

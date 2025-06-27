@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RoutineSection from "@/components/routine-section";
+import { SocialSharing } from "@/components/social-sharing";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Save, Share2, RotateCcw, Sparkles } from "lucide-react";
 import { RoutineStep } from "@/lib/types";
@@ -127,6 +128,10 @@ export default function Routine() {
           >
             Load Sample Routines
           </Button>
+          <SocialSharing 
+            content={`Check out my personalized skincare routine! ${morningSteps.length > 0 ? `Morning: ${morningSteps.length} steps` : ''} ${eveningSteps.length > 0 ? `Evening: ${eveningSteps.length} steps` : ''} #skincare #glowai`}
+            title="Share My Routine"
+          />
         </div>
 
         <div className="max-w-4xl mx-auto">

@@ -61,6 +61,16 @@ export default function Navbar() {
             >
               My Routine
             </Link>
+            <Link 
+              href="/social" 
+              className={`transition-colors ${
+                isActive('/social') 
+                  ? 'text-glow-pink font-medium' 
+                  : 'text-gray-700 hover:text-glow-pink'
+              }`}
+            >
+              Social Media
+            </Link>
           </div>
           
           <div className="flex items-center space-x-4">

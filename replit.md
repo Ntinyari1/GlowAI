@@ -93,6 +93,14 @@ The application uses a comprehensive PostgreSQL schema with the following main t
 
 ## Changelog
 - June 27, 2025. Initial setup
+- June 27, 2025. Added social media automation features including account management, post scheduling, and sharing functionality
+
+## Recent Changes
+- Implemented social media sharing functionality with Instagram, Facebook, and Twitter integration
+- Added social performance dashboard with follower counts and engagement metrics
+- Created scheduled posts management system with AI-generated content
+- Integrated social sharing buttons into routine and tips pages for user engagement
+- Added social media navigation tab and dedicated social automation page
 
 ## User Preferences
 
