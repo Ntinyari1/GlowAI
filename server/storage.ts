@@ -24,6 +24,8 @@ import {
   type SocialAccount,
   type InsertSocialAccount,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, gt, or, ilike, sql } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -73,478 +75,279 @@ export interface IStorage {
   getScheduledPosts(userId: number): Promise<SocialPost[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User> = new Map();
-  private tips: Map<number, Tip> = new Map();
-  private products: Map<number, Product> = new Map();
-  private routines: Map<number, Routine> = new Map();
-  private favorites: Map<number, Favorite> = new Map();
-  private userActivity: Map<number, UserActivity> = new Map();
-  private socialPosts: Map<number, SocialPost> = new Map();
-  private socialAccounts: Map<number, SocialAccount> = new Map();
-  
-  private currentUserId = 1;
-  private currentTipId = 1;
-  private currentProductId = 1;
-  private currentRoutineId = 1;
-  private currentFavoriteId = 1;
-  private currentActivityId = 1;
-  private currentSocialPostId = 1;
-  private currentSocialAccountId = 1;
-
-  constructor() {
-    this.seedData();
-    this.seedSocialData();
-  }
-
-  private seedData() {
-    // Seed some sample products
-    const sampleProducts: InsertProduct[] = [
-      {
-        name: "CeraVe Hydrating Cleanser",
-        brand: "CeraVe",
-        category: "cleanser",
-        description: "Gentle, non-foaming cleanser for dry to normal skin",
-        ingredients: ["ceramides", "hyaluronic acid", "MVE technology"],
-        price: "$12.99",
-        rating: 46,
-        pros: ["Non-comedogenic", "Fragrance-free", "Gentle formula"],
-        cons: ["May not remove heavy makeup", "Can feel heavy for oily skin"],
-        bestFor: ["dry skin", "sensitive skin", "normal skin"],
-        imageUrl: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400",
-        affiliateLink: "https://example.com/cerave-cleanser"
-      },
-      {
-        name: "The Ordinary Niacinamide 10% + Zinc 1%",
-        brand: "The Ordinary",
-        category: "serum",
-        description: "High-strength niacinamide serum to reduce appearance of skin blemishes",
-        ingredients: ["niacinamide", "zinc PCA"],
-        price: "$7.90",
-        rating: 44,
-        pros: ["Affordable", "Reduces oiliness", "Minimizes pores"],
-        cons: ["Can pill under makeup", "Strong concentration may irritate"],
-        bestFor: ["oily skin", "acne-prone skin", "combination skin"],
-        imageUrl: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400",
-        affiliateLink: "https://example.com/ordinary-niacinamide"
-      },
-      {
-        name: "Neutrogena Ultra Sheer Dry-Touch SPF 60",
-        brand: "Neutrogena",
-        category: "sunscreen",
-        description: "Lightweight, fast-absorbing sunscreen with broad spectrum protection",
-        ingredients: ["avobenzone", "homosalate", "octisalate", "octocrylene"],
-        price: "$9.47",
-        rating: 42,
-        pros: ["Lightweight formula", "Non-comedogenic", "Water-resistant"],
-        cons: ["May leave white cast", "Contains chemical filters"],
-        bestFor: ["daily use", "all skin types", "acne-prone skin"],
-        imageUrl: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400",
-        affiliateLink: "https://example.com/neutrogena-sunscreen"
-      }
-    ];
-
-    sampleProducts.forEach(product => this.createProduct(product));
-
-    // Seed some sample tips
-    const sampleTips: InsertTip[] = [
-      {
-        title: "Start with Gentle Cleansing",
-        content: "For combination skin, use a gentle gel cleanser in the morning to remove overnight buildup without over-drying your skin.",
-        category: "morning",
-        skinTypes: ["combination", "oily"],
-        timeOfDay: "morning",
-        imageUrl: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400"
-      },
-      {
-        title: "The Power of Niacinamide",
-        content: "This B3 vitamin helps control oil production and minimize pores - perfect for your combination skin type.",
-        category: "ingredient",
-        skinTypes: ["combination", "oily"],
-        timeOfDay: "afternoon",
-        imageUrl: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400"
-      },
-      {
-        title: "Double Cleanse Tonight",
-        content: "Remove makeup and sunscreen with an oil cleanser, followed by your regular gel cleanser for a deep clean.",
-        category: "evening",
-        skinTypes: ["all"],
-        timeOfDay: "evening",
-        imageUrl: "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=400"
-      }
-    ];
-
-    sampleTips.forEach(tip => this.createTip(tip));
-  }
-
+export class DatabaseStorage implements IStorage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.email === email);
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentUserId++;
-    const user: User = {
-      ...insertUser,
-      id,
-      skinType: insertUser.skinType || null,
-      skinConcerns: insertUser.skinConcerns || null,
-      age: insertUser.age || null,
-      goals: insertUser.goals || null,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   async updateUser(id: number, updates: Partial<InsertUser>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   // Tips operations
   async getTips(skinType?: string, limit = 10): Promise<Tip[]> {
-    let tips = Array.from(this.tips.values());
+    let query = db.select().from(tips);
     
     if (skinType) {
-      tips = tips.filter(tip => 
-        !tip.skinTypes || 
-        tip.skinTypes.includes(skinType) || 
-        tip.skinTypes.includes("all")
+      query = query.where(
+        or(
+          eq(tips.skinTypes, null),
+          sql`${tips.skinTypes} @> ARRAY[${skinType}]::text[]`
+        )
       );
     }
     
-    return tips
-      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime())
-      .slice(0, limit);
+    const result = await query
+      .orderBy(desc(tips.createdAt))
+      .limit(limit);
+    return result;
   }
 
   async getTipById(id: number): Promise<Tip | undefined> {
-    return this.tips.get(id);
+    const [tip] = await db.select().from(tips).where(eq(tips.id, id));
+    return tip || undefined;
   }
 
   async createTip(insertTip: InsertTip): Promise<Tip> {
-    const id = this.currentTipId++;
-    const tip: Tip = {
-      ...insertTip,
-      id,
-      skinTypes: insertTip.skinTypes || null,
-      timeOfDay: insertTip.timeOfDay || null,
-      imageUrl: insertTip.imageUrl || null,
-      likes: 0,
-      createdAt: new Date(),
-    };
-    this.tips.set(id, tip);
+    const [tip] = await db
+      .insert(tips)
+      .values(insertTip)
+      .returning();
     return tip;
   }
 
   async likeTip(id: number): Promise<void> {
-    const tip = this.tips.get(id);
-    if (tip) {
-      tip.likes = (tip.likes || 0) + 1;
-      this.tips.set(id, tip);
-    }
+    await db
+      .update(tips)
+      .set({ likes: sql`${tips.likes} + 1` })
+      .where(eq(tips.id, id));
   }
 
   // Products operations
   async getProducts(category?: string, limit = 20): Promise<Product[]> {
-    let products = Array.from(this.products.values());
+    let query = db.select().from(products);
     
-    if (category && category !== "all") {
-      products = products.filter(product => product.category === category);
+    if (category) {
+      query = query.where(eq(products.category, category));
     }
     
-    return products
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, limit);
+    const result = await query
+      .orderBy(desc(products.createdAt))
+      .limit(limit);
+    return result;
   }
 
   async getProductById(id: number): Promise<Product | undefined> {
-    return this.products.get(id);
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product || undefined;
   }
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
-    const id = this.currentProductId++;
-    const product: Product = {
-      ...insertProduct,
-      id,
-      description: insertProduct.description || null,
-      ingredients: insertProduct.ingredients || null,
-      price: insertProduct.price || null,
-      rating: insertProduct.rating || null,
-      pros: insertProduct.pros || null,
-      cons: insertProduct.cons || null,
-      bestFor: insertProduct.bestFor || null,
-      imageUrl: insertProduct.imageUrl || null,
-      affiliateLink: insertProduct.affiliateLink || null,
-      createdAt: new Date(),
-    };
-    this.products.set(id, product);
+    const [product] = await db
+      .insert(products)
+      .values(insertProduct)
+      .returning();
     return product;
   }
 
   async searchProducts(query: string): Promise<Product[]> {
-    const products = Array.from(this.products.values());
-    const lowerQuery = query.toLowerCase();
-    
-    return products.filter(product =>
-      product.name.toLowerCase().includes(lowerQuery) ||
-      product.brand.toLowerCase().includes(lowerQuery) ||
-      product.category.toLowerCase().includes(lowerQuery)
-    );
+    const result = await db
+      .select()
+      .from(products)
+      .where(
+        or(
+          ilike(products.name, `%${query}%`),
+          ilike(products.brand, `%${query}%`),
+          ilike(products.category, `%${query}%`)
+        )
+      )
+      .orderBy(desc(products.createdAt));
+    return result;
   }
 
   // Routines operations
   async getUserRoutines(userId: number): Promise<Routine[]> {
-    return Array.from(this.routines.values()).filter(routine => routine.userId === userId);
+    const result = await db
+      .select()
+      .from(routines)
+      .where(eq(routines.userId, userId))
+      .orderBy(desc(routines.createdAt));
+    return result;
   }
 
   async createRoutine(insertRoutine: InsertRoutine): Promise<Routine> {
-    const id = this.currentRoutineId++;
-    const routine: Routine = {
-      ...insertRoutine,
-      id,
-      userId: insertRoutine.userId || null,
-      products: insertRoutine.products || null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.routines.set(id, routine);
+    const [routine] = await db
+      .insert(routines)
+      .values(insertRoutine)
+      .returning();
     return routine;
   }
 
   async updateRoutine(id: number, updates: Partial<InsertRoutine>): Promise<Routine | undefined> {
-    const routine = this.routines.get(id);
-    if (!routine) return undefined;
-    
-    const updatedRoutine = { ...routine, ...updates, updatedAt: new Date() };
-    this.routines.set(id, updatedRoutine);
-    return updatedRoutine;
+    const [routine] = await db
+      .update(routines)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(routines.id, id))
+      .returning();
+    return routine || undefined;
   }
 
   // Favorites operations
   async getUserFavorites(userId: number, type?: string): Promise<Favorite[]> {
-    let favorites = Array.from(this.favorites.values()).filter(fav => fav.userId === userId);
+    let query = db.select().from(favorites).where(eq(favorites.userId, userId));
     
     if (type) {
-      favorites = favorites.filter(fav => fav.type === type);
+      query = query.where(and(eq(favorites.userId, userId), eq(favorites.type, type)));
     }
     
-    return favorites;
+    const result = await query.orderBy(desc(favorites.createdAt));
+    return result;
   }
 
   async addFavorite(insertFavorite: InsertFavorite): Promise<Favorite> {
-    const id = this.currentFavoriteId++;
-    const favorite: Favorite = {
-      ...insertFavorite,
-      id,
-      userId: insertFavorite.userId || null,
-      createdAt: new Date(),
-    };
-    this.favorites.set(id, favorite);
+    const [favorite] = await db
+      .insert(favorites)
+      .values(insertFavorite)
+      .returning();
     return favorite;
   }
 
   async removeFavorite(userId: number, type: string, itemId: number): Promise<void> {
-    const favorite = Array.from(this.favorites.values()).find(
-      fav => fav.userId === userId && fav.type === type && fav.itemId === itemId
-    );
-    
-    if (favorite) {
-      this.favorites.delete(favorite.id);
-    }
+    await db
+      .delete(favorites)
+      .where(
+        and(
+          eq(favorites.userId, userId),
+          eq(favorites.type, type),
+          eq(favorites.itemId, itemId)
+        )
+      );
   }
 
   // User activity operations
   async getUserActivity(userId: number, limit = 10): Promise<UserActivity[]> {
-    return Array.from(this.userActivity.values())
-      .filter(activity => activity.userId === userId)
-      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime())
-      .slice(0, limit);
+    const result = await db
+      .select()
+      .from(userActivity)
+      .where(eq(userActivity.userId, userId))
+      .orderBy(desc(userActivity.createdAt))
+      .limit(limit);
+    return result;
   }
 
   async addUserActivity(insertActivity: InsertUserActivity): Promise<UserActivity> {
-    const id = this.currentActivityId++;
-    const activity: UserActivity = {
-      ...insertActivity,
-      id,
-      userId: insertActivity.userId || null,
-      createdAt: new Date(),
-    };
-    this.userActivity.set(id, activity);
+    const [activity] = await db
+      .insert(userActivity)
+      .values(insertActivity)
+      .returning();
     return activity;
-  }
-
-  private seedSocialData() {
-    // Add demo social accounts
-    this.socialAccounts.set(1, {
-      id: 1,
-      userId: 1,
-      platform: "instagram",
-      accountId: "instagram_1",
-      accessToken: null,
-      refreshToken: null,
-      status: "connected",
-      followers: 12500,
-      engagement: "8.2",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    this.socialAccounts.set(2, {
-      id: 2,
-      userId: 1,
-      platform: "facebook",
-      accountId: "facebook_1",
-      accessToken: null,
-      refreshToken: null,
-      status: "connected",
-      followers: 8900,
-      engagement: "5.7",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-
-    // Add demo scheduled posts
-    const now = new Date();
-    const todayEvening = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0);
-    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    
-    this.socialPosts.set(1, {
-      id: 1,
-      userId: 1,
-      platform: "instagram",
-      content: "Morning skincare routine for dry skin in winter ❄️✨",
-      scheduledFor: todayEvening,
-      status: "scheduled",
-      routineId: null,
-      tipId: 1,
-      createdAt: new Date(),
-      publishedAt: null,
-    });
-
-    this.socialPosts.set(2, {
-      id: 2,
-      userId: 1,
-      platform: "twitter",
-      content: "Quick tip: Double cleansing method for makeup removal 💄",
-      scheduledFor: tomorrow,
-      status: "scheduled",
-      routineId: null,
-      tipId: 2,
-      createdAt: new Date(),
-      publishedAt: null,
-    });
   }
 
   // Social media operations
   async getSocialAccounts(userId: number): Promise<SocialAccount[]> {
-    return Array.from(this.socialAccounts.values()).filter(account => account.userId === userId);
+    const result = await db
+      .select()
+      .from(socialAccounts)
+      .where(eq(socialAccounts.userId, userId))
+      .orderBy(desc(socialAccounts.createdAt));
+    return result;
   }
 
   async connectSocialAccount(insertAccount: InsertSocialAccount): Promise<SocialAccount> {
-    const id = this.currentSocialAccountId++;
-    const account: SocialAccount = {
-      ...insertAccount,
-      id,
-      userId: insertAccount.userId || null,
-      accessToken: insertAccount.accessToken || null,
-      refreshToken: insertAccount.refreshToken || null,
-      status: insertAccount.status || "connected",
-      followers: insertAccount.followers || 0,
-      engagement: insertAccount.engagement || "0.00",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.socialAccounts.set(id, account);
+    const [account] = await db
+      .insert(socialAccounts)
+      .values(insertAccount)
+      .returning();
     return account;
   }
 
   async updateSocialAccount(id: number, updates: Partial<InsertSocialAccount>): Promise<SocialAccount | undefined> {
-    const account = this.socialAccounts.get(id);
-    if (!account) return undefined;
-
-    const updatedAccount: SocialAccount = {
-      ...account,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    this.socialAccounts.set(id, updatedAccount);
-    return updatedAccount;
+    const [account] = await db
+      .update(socialAccounts)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(socialAccounts.id, id))
+      .returning();
+    return account || undefined;
   }
 
   async disconnectSocialAccount(id: number): Promise<void> {
-    const account = this.socialAccounts.get(id);
-    if (account) {
-      account.status = "disconnected";
-      account.updatedAt = new Date();
-      this.socialAccounts.set(id, account);
-    }
+    await db
+      .update(socialAccounts)
+      .set({ status: "disconnected", updatedAt: new Date() })
+      .where(eq(socialAccounts.id, id));
   }
 
   async getSocialPosts(userId: number, limit = 10): Promise<SocialPost[]> {
-    return Array.from(this.socialPosts.values())
-      .filter(post => post.userId === userId)
-      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime())
-      .slice(0, limit);
+    const result = await db
+      .select()
+      .from(socialPosts)
+      .where(eq(socialPosts.userId, userId))
+      .orderBy(desc(socialPosts.createdAt))
+      .limit(limit);
+    return result;
   }
 
   async createSocialPost(insertPost: InsertSocialPost): Promise<SocialPost> {
-    const id = this.currentSocialPostId++;
-    const post: SocialPost = {
-      ...insertPost,
-      id,
-      userId: insertPost.userId || null,
-      scheduledFor: insertPost.scheduledFor || null,
-      status: insertPost.status || "draft",
-      routineId: insertPost.routineId || null,
-      tipId: insertPost.tipId || null,
-      createdAt: new Date(),
-      publishedAt: null,
-    };
-    this.socialPosts.set(id, post);
+    const [post] = await db
+      .insert(socialPosts)
+      .values(insertPost)
+      .returning();
     return post;
   }
 
   async updateSocialPost(id: number, updates: Partial<InsertSocialPost>): Promise<SocialPost | undefined> {
-    const post = this.socialPosts.get(id);
-    if (!post) return undefined;
-
-    const updatedPost: SocialPost = {
-      ...post,
-      ...updates,
-    };
-    this.socialPosts.set(id, updatedPost);
-    return updatedPost;
+    const [post] = await db
+      .update(socialPosts)
+      .set(updates)
+      .where(eq(socialPosts.id, id))
+      .returning();
+    return post || undefined;
   }
 
   async deleteSocialPost(id: number): Promise<void> {
-    this.socialPosts.delete(id);
+    await db.delete(socialPosts).where(eq(socialPosts.id, id));
   }
 
   async getScheduledPosts(userId: number): Promise<SocialPost[]> {
     const now = new Date();
-    return Array.from(this.socialPosts.values())
-      .filter(post => 
-        post.userId === userId && 
-        post.status === "scheduled" && 
-        post.scheduledFor && 
-        new Date(post.scheduledFor) > now
+    const result = await db
+      .select()
+      .from(socialPosts)
+      .where(
+        and(
+          eq(socialPosts.userId, userId),
+          eq(socialPosts.status, "scheduled"),
+          gt(socialPosts.scheduledFor, now)
+        )
       )
-      .sort((a, b) => new Date(a.scheduledFor!).getTime() - new Date(b.scheduledFor!).getTime());
+      .orderBy(socialPosts.scheduledFor);
+    return result;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
