@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Star, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { mockApi } from "@/lib/mockApi";
 
 interface ProductCardProps {
   product: {
@@ -55,6 +56,14 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   const badge = getRecommendationBadge();
+
+  const handleAddFavorite = async (favoriteData) => {
+    await mockApi.addFavorite(favoriteData);
+  };
+
+  const handleRemoveFavorite = async (userId, type, itemId) => {
+    await mockApi.removeFavorite(userId, type, itemId);
+  };
 
   return (
     <Card className="overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow">

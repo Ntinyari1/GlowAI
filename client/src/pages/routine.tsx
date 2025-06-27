@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import RoutineSection from "@/components/routine-section";
 import { SocialSharing } from "@/components/social-sharing";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { mockApi } from "@/lib/mockApi";
 import { Save, Share2, RotateCcw, Sparkles } from "lucide-react";
 import { RoutineStep } from "@/lib/types";
 
@@ -20,16 +20,8 @@ export default function Routine() {
 
   const generateRoutineMutation = useMutation({
     mutationFn: async (routineType: 'morning' | 'evening') => {
-      const response = await apiRequest('POST', '/api/ai/generate-routine', {
-        skinType: skinProfile.skinType || 'normal',
-        concerns: skinProfile.concerns || [],
-        goals: skinProfile.goals || [],
-        routineType
-      });
-      return response.json();
-    },
-    onSuccess: (data, routineType) => {
-      const steps: RoutineStep[] = data.steps.map((step: any) => ({
+      const routine = await mockApi.generateRoutine(skinProfile, routineType);
+      const steps: RoutineStep[] = routine.steps.map((step: any) => ({
         order: step.order,
         category: step.category,
         description: step.description,
@@ -42,20 +34,23 @@ export default function Routine() {
         setEveningSteps(steps);
       }
     },
+    onSuccess: (data, routineType) => {
+      // Handle success
+    },
   });
 
   const saveRoutineMutation = useMutation({
     mutationFn: async () => {
       // Save both routines
       if (morningSteps.length > 0) {
-        await apiRequest('POST', '/api/routines', {
+        await mockApi.createRoutine({
           userId: 1,
           type: 'morning',
           products: morningSteps
         });
       }
       if (eveningSteps.length > 0) {
-        await apiRequest('POST', '/api/routines', {
+        await mockApi.createRoutine({
           userId: 1,
           type: 'evening',
           products: eveningSteps
@@ -63,7 +58,7 @@ export default function Routine() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/users/1/routines'] });
+      // Handle success
     },
   });
 

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Share2 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { mockApi } from "@/lib/mockApi";
 
 interface TipCardProps {
   tip: {
@@ -25,7 +26,7 @@ export default function TipCard({ tip }: TipCardProps) {
 
   const likeMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest('POST', `/api/tips/${tip.id}/like`);
+      await mockApi.likeTip(tip.id);
     },
     onSuccess: () => {
       setIsLiked(true);

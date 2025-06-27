@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { mockApi } from "@/lib/mockApi";
 import type { SocialAccount, SocialPost } from "@shared/schema";
 
 interface SocialSharingProps {
@@ -72,7 +72,7 @@ export function SocialAccounts({ userId }: SocialAccountsProps) {
 
   const connectMutation = useMutation({
     mutationFn: async (platform: string) => {
-      return apiRequest(`/api/social-accounts`, "POST", {
+      return mockApi.connectSocialAccount({
         userId,
         platform,
         accountId: `${platform}_${userId}`,
@@ -214,7 +214,7 @@ export function SocialSharing({ routineId, tipId, content, title }: SocialSharin
 
   const createPostMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest("/api/social-posts", "POST", data);
+      return mockApi.createSocialPost(data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users/1/social-posts"] });

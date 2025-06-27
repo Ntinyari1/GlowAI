@@ -3,8 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import TipCard from "@/components/tip-card";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { Sparkles } from "lucide-react";
+import { mockApi } from "@/lib/mockApi";
 
 export default function Tips() {
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>("all");
@@ -17,18 +18,17 @@ export default function Tips() {
 
   const generateTipMutation = useMutation({
     mutationFn: async (timeOfDay: string) => {
-      await apiRequest('POST', '/api/ai/generate-tip', {
-        skinType: skinProfile.skinType || 'normal',
-        concerns: skinProfile.concerns || [],
-        age: skinProfile.age,
-        goals: skinProfile.goals || [],
-        timeOfDay
-      });
+      const tip = await mockApi.generateTip(skinProfile, timeOfDay);
+      // ... handle tip ...
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tips'] });
     },
   });
+
+  const fetchTips = async (skinType, limit) => {
+    return await mockApi.getTips(skinType, limit);
+  };
 
   const filteredTips = tips?.filter((tip: any) => 
     selectedTimeOfDay === "all" || tip.timeOfDay === selectedTimeOfDay
