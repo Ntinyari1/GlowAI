@@ -12,7 +12,9 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
-  const res = await fetch(url, {
+  // Rewrite API URLs to use Netlify Functions
+  const netlifyUrl = url.replace(/^\/api\//, '/.netlify/functions/');
+  const res = await fetch(netlifyUrl, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
@@ -29,7 +31,9 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
+    // Rewrite API URLs to use Netlify Functions
+    const url = (queryKey[0] as string).replace(/^\/api\//, '/.netlify/functions/');
+    const res = await fetch(url, {
       credentials: "include",
     });
 
