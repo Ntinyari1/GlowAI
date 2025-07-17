@@ -111,20 +111,21 @@ export class DatabaseStorage implements IStorage {
 
   // Tips operations
   async getTips(skinType?: string, limit = 10): Promise<Tip[]> {
-    let query = db.select().from(tips);
-    
+    let result;
     if (skinType) {
-      query = query.where(
-        or(
-          eq(tips.skinTypes, null),
-          sql`${tips.skinTypes} @> ARRAY[${skinType}]::text[]`
-        )
+      const whereCondition = or(
+        sql`${tips.skinTypes} IS NULL`,
+        sql`${tips.skinTypes} @> ARRAY[${skinType}]::text[]`
       );
+      result = await db.select().from(tips)
+        .where(whereCondition)
+        .orderBy(desc(tips.createdAt))
+        .limit(limit);
+    } else {
+      result = await db.select().from(tips)
+        .orderBy(desc(tips.createdAt))
+        .limit(limit);
     }
-    
-    const result = await query
-      .orderBy(desc(tips.createdAt))
-      .limit(limit);
     return result;
   }
 
@@ -150,15 +151,15 @@ export class DatabaseStorage implements IStorage {
 
   // Products operations
   async getProducts(category?: string, limit = 20): Promise<Product[]> {
-    let query = db.select().from(products);
-    
+    let whereCondition = undefined;
     if (category) {
-      query = query.where(eq(products.category, category));
+      whereCondition = eq(products.category, category);
     }
-    
-    const result = await query
+    const query = db.select().from(products)
+      .where(whereCondition)
       .orderBy(desc(products.createdAt))
       .limit(limit);
+    const result = await query;
     return result;
   }
 
@@ -219,13 +220,17 @@ export class DatabaseStorage implements IStorage {
 
   // Favorites operations
   async getUserFavorites(userId: number, type?: string): Promise<Favorite[]> {
-    let query = db.select().from(favorites).where(eq(favorites.userId, userId));
-    
+    let result;
     if (type) {
-      query = query.where(and(eq(favorites.userId, userId), eq(favorites.type, type)));
+      const whereCondition = and(eq(favorites.userId, userId), eq(favorites.type, type));
+      result = await db.select().from(favorites)
+        .where(whereCondition)
+        .orderBy(desc(favorites.createdAt));
+    } else {
+      result = await db.select().from(favorites)
+        .where(eq(favorites.userId, userId))
+        .orderBy(desc(favorites.createdAt));
     }
-    
-    const result = await query.orderBy(desc(favorites.createdAt));
     return result;
   }
 
