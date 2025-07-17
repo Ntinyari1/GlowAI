@@ -1,6 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// import { log } from "./vite";
+function log(message: string) {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [server] ${message}`);
+}
 
 const app = express();
 app.use(express.json());
@@ -51,9 +60,9 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    // await setupVite(app, server); // Disabled for production build
   } else {
-    serveStatic(app);
+    // serveStatic(app); // Disabled for production build
   }
 
   // ALWAYS serve the app on port 5000
