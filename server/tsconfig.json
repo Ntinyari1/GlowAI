@@ -1,0 +1,25 @@
+{
+  "include": ["./**/*"],
+  "exclude": [
+    "node_modules",
+    "../vite.config.ts",
+    "../client",
+    "../shared",
+    "vite.ts",
+    "**/*.test.ts"
+  ],
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "ESNext",
+    "target": "ES2020",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "types": ["node", "express"],
+    "paths": {
+      "@shared/*": ["../shared/*"]
+    }
+  }
+} 

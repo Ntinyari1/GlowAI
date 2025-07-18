@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Heart, Star, ExternalLink } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { mockApi } from "@/lib/mockApi";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
 
 interface ProductCardProps {
   product: {
@@ -65,15 +66,40 @@ export default function ProductCard({ product }: ProductCardProps) {
     await mockApi.removeFavorite(userId, type, itemId);
   };
 
+  // Static array of card images
+  const cardImages = [
+    "/card-images/image1.webp",
+    "/card-images/image2.webp",
+    "/card-images/image3.webp",
+    "/card-images/image4.webp",
+    "/card-images/image5.webp",
+  ];
+  // Find the index for this product (assuming id starts at 1)
+  const startIdx = (product.id - 1) % cardImages.length;
+  // Rotate images so the first is the one for this card
+  const images = [
+    ...cardImages.slice(startIdx),
+    ...cardImages.slice(0, startIdx)
+  ];
+
   return (
     <Card className="overflow-hidden border-none shadow-lg hover:shadow-xl transition-shadow">
-      {product.imageUrl && (
-        <img 
-          src={product.imageUrl} 
-          alt={product.name}
-          className="w-full h-48 object-cover"
-        />
-      )}
+      <Carousel className="w-full">
+        <CarouselContent>
+          {images.map((img, idx) => (
+            <CarouselItem key={idx}>
+              <img
+                src={img}
+                alt={product.name + ' image ' + (idx + 1)}
+                className="w-full h-48 object-cover"
+                onError={e => { e.currentTarget.onerror = null; e.currentTarget.src = '/fallback-product.png'; }}
+              />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        <CarouselPrevious />
+        <CarouselNext />
+      </Carousel>
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-3">
           {badge && (
