@@ -12,6 +12,49 @@ export default function Routine() {
   const [morningSteps, setMorningSteps] = useState<RoutineStep[]>([]);
   const [eveningSteps, setEveningSteps] = useState<RoutineStep[]>([]);
   const skinProfile = JSON.parse(localStorage.getItem('skinProfile') || '{}');
+  const routinePref = skinProfile.routinePref || 'standard';
+  const [showPrefDropdown, setShowPrefDropdown] = useState(false);
+  const routinePrefOptions = [
+    { value: 'simple', label: 'Simple (3 easy steps)', desc: ['Cleanser', 'Moisturizer', 'Sunscreen'] },
+    { value: 'standard', label: 'Standard (5 steps)', desc: ['Cleanser', 'Serum', 'Moisturizer', 'Sunscreen', 'Toner'] },
+    { value: 'advanced', label: 'Advanced (7+ steps)', desc: ['Cleanser', 'Serum', 'Moisturizer', 'Sunscreen', 'Toner', 'Eye Cream', 'Essence'] },
+  ];
+  const currentPref = routinePrefOptions.find(opt => opt.value === routinePref) || routinePrefOptions[1];
+
+  // Helper to get step count based on preference
+  const getStepCount = (type: 'morning' | 'evening') => {
+    if (routinePref === 'simple') return 3;
+    if (routinePref === 'advanced') return 7;
+    return 5;
+  };
+
+  // Default steps for each type
+  const defaultSteps = {
+    morning: [
+      { category: 'cleanser', productName: 'CeraVe Hydrating Cleanser', description: 'Gentle daily cleanser' },
+      { category: 'serum', productName: 'The Ordinary Niacinamide 10%', description: 'Targeted treatment serum' },
+      { category: 'moisturizer', productName: 'Neutrogena Oil-Free Gel', description: 'Hydrating moisturizer' },
+      { category: 'sunscreen', productName: 'Neutrogena Ultra Sheer SPF 60', description: 'Broad spectrum protection' },
+      { category: 'eye cream', productName: 'L’Oreal Eye Defense', description: 'Brightens and protects eye area' },
+      { category: 'toner', productName: 'Pixi Glow Tonic', description: 'Exfoliating toner' },
+      { category: 'essence', productName: 'Cosrx Advanced Snail 96', description: 'Hydrating essence' },
+    ],
+    evening: [
+      { category: 'cleanser', productName: 'DHC Deep Cleansing Oil', description: 'Oil cleanser for makeup removal' },
+      { category: 'cleanser', productName: 'CeraVe Hydrating Cleanser', description: 'Water-based cleanser' },
+      { category: 'treatment', productName: 'The Ordinary Retinol 0.5%', description: 'Anti-aging treatment' },
+      { category: 'moisturizer', productName: 'CeraVe PM Facial Lotion', description: 'Nourishing night moisturizer' },
+      { category: 'toner', productName: 'Kiehl’s Calendula Toner', description: 'Soothing toner' },
+      { category: 'mask', productName: 'Laneige Water Sleeping Mask', description: 'Hydrating overnight mask' },
+      { category: 'eye cream', productName: 'L’Oreal Eye Defense', description: 'Brightens and protects eye area' },
+    ]
+  };
+
+  const handlePrefChange = (val: string) => {
+    localStorage.setItem('skinProfile', JSON.stringify({ ...skinProfile, routinePref: val }));
+    setShowPrefDropdown(false);
+    window.location.reload(); // reload to apply new steps
+  };
 
   const { data: userRoutines } = useQuery({
     queryKey: ['/api/users/1/routines'],
@@ -70,21 +113,10 @@ export default function Routine() {
   // Load default routines if none exist
   const loadDefaultRoutines = () => {
     if (morningSteps.length === 0) {
-      setMorningSteps([
-        { order: 1, category: "cleanser", productName: "CeraVe Hydrating Cleanser", description: "Gentle daily cleanser" },
-        { order: 2, category: "serum", productName: "The Ordinary Niacinamide 10%", description: "Targeted treatment serum" },
-        { order: 3, category: "moisturizer", productName: "Neutrogena Oil-Free Gel", description: "Hydrating moisturizer" },
-        { order: 4, category: "sunscreen", productName: "Neutrogena Ultra Sheer SPF 60", description: "Broad spectrum protection" },
-      ]);
+      setMorningSteps(defaultSteps.morning.slice(0, getStepCount('morning')).map((step, i) => ({ ...step, order: i + 1 })));
     }
-    
     if (eveningSteps.length === 0) {
-      setEveningSteps([
-        { order: 1, category: "cleanser", productName: "DHC Deep Cleansing Oil", description: "Oil cleanser for makeup removal" },
-        { order: 2, category: "cleanser", productName: "CeraVe Hydrating Cleanser", description: "Water-based cleanser" },
-        { order: 3, category: "treatment", productName: "The Ordinary Retinol 0.5%", description: "Anti-aging treatment" },
-        { order: 4, category: "moisturizer", productName: "CeraVe PM Facial Lotion", description: "Nourishing night moisturizer" },
-      ]);
+      setEveningSteps(defaultSteps.evening.slice(0, getStepCount('evening')).map((step, i) => ({ ...step, order: i + 1 })));
     }
   };
 
@@ -96,6 +128,31 @@ export default function Routine() {
           <p className="text-gray-600 max-w-2xl mx-auto">
             Create a personalized skincare routine based on your skin type, concerns, and goals
           </p>
+          <div className="mt-4 flex flex-col items-center">
+            <button
+              type="button"
+              className="inline-block bg-white text-glow-purple border border-glow-purple text-sm font-semibold px-4 py-2 rounded-full shadow hover:bg-glow-lavender/30 focus:outline-none focus:ring-2 focus:ring-glow-pink"
+              onClick={() => setShowPrefDropdown(v => !v)}
+            >
+              Routine Preference: {currentPref.label}
+            </button>
+            {showPrefDropdown && (
+              <div className="mt-2 bg-white border border-glow-purple rounded-lg shadow-lg z-10">
+                {routinePrefOptions.map(opt => (
+                  <div
+                    key={opt.value}
+                    className={`px-4 py-2 cursor-pointer hover:bg-glow-lavender/30 ${routinePref === opt.value ? 'font-bold text-glow-purple' : ''}`}
+                    onClick={() => handlePrefChange(opt.value)}
+                  >
+                    {opt.label}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-2 text-xs text-gray-700 text-center">
+              <span className="font-semibold">Typical steps:</span> {currentPref.desc.join(', ')}
+            </div>
+          </div>
         </div>
 
         {/* AI Generation Buttons */}
