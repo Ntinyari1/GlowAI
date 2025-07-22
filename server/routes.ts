@@ -1,14 +1,26 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { insertUserSchema, insertTipSchema, insertProductSchema, insertRoutineSchema, insertFavoriteSchema, insertSocialPostSchema, insertSocialAccountSchema } from "@shared/schema";
-import { generateSkincareTip, generateProductReview, generateRoutineRecommendation } from "./services/gemini";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+import { storage } from "./storage.js";
+
+import { generateSkincareTip, generateProductReview, generateRoutineRecommendation } from "./services/gemini.js";
+import { getDailyTip } from "./services/dailyTipService.js";
+
+export async function registerRoutes(app: Express): Promise<void> {
+  // Daily tip route
+  app.get("/api/daily-tip", async (req, res) => {
+    try {
+      const skinType = req.query.skinType as string | undefined;
+      const tip = await getDailyTip(skinType);
+      res.json({ tip });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch daily tip", error });
+    }
+  });
+
   // User routes
   app.post("/api/users", async (req, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const userData = req.body;
       const user = await storage.createUser(userData);
       res.json(user);
     } catch (error) {
@@ -18,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const user = await storage.getUser(id);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -31,9 +43,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/users/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const updates = insertUserSchema.partial().parse(req.body);
-      const user = await storage.updateUser(id, updates);
+      const id = req.params.id;
+      const user = await storage.updateUser(id, req.body);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -59,8 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tips", async (req, res) => {
     try {
-      const tipData = insertTipSchema.parse(req.body);
-      const tip = await storage.createTip(tipData);
+      const tip = await storage.createTip(req.body);
       res.json(tip);
     } catch (error) {
       res.status(400).json({ message: "Invalid tip data", error });
@@ -69,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tips/:id/like", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       await storage.likeTip(id);
       res.json({ success: true });
     } catch (error) {
@@ -135,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/products/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const product = await storage.getProductById(id);
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
@@ -148,8 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/products", async (req, res) => {
     try {
-      const productData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(productData);
+      const product = await storage.createProduct(req.body);
       res.json(product);
     } catch (error) {
       res.status(400).json({ message: "Invalid product data", error });
@@ -175,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Routines routes
   app.get("/api/users/:userId/routines", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const routines = await storage.getUserRoutines(userId);
       res.json(routines);
     } catch (error) {
@@ -185,8 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/routines", async (req, res) => {
     try {
-      const routineData = insertRoutineSchema.parse(req.body);
-      const routine = await storage.createRoutine(routineData);
+      const routine = await storage.createRoutine(req.body);
       res.json(routine);
     } catch (error) {
       res.status(400).json({ message: "Invalid routine data", error });
@@ -195,9 +203,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/routines/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
-      const updates = insertRoutineSchema.partial().parse(req.body);
-      const routine = await storage.updateRoutine(id, updates);
+      const id = req.params.id;
+      const routine = await storage.updateRoutine(id, req.body);
       if (!routine) {
         return res.status(404).json({ message: "Routine not found" });
       }
@@ -232,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Favorites routes
   app.get("/api/users/:userId/favorites", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const { type } = req.query;
       const favorites = await storage.getUserFavorites(userId, type as string);
       res.json(favorites);
@@ -243,8 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/favorites", async (req, res) => {
     try {
-      const favoriteData = insertFavoriteSchema.parse(req.body);
-      const favorite = await storage.addFavorite(favoriteData);
+      const favorite = await storage.addFavorite(req.body);
       res.json(favorite);
     } catch (error) {
       res.status(400).json({ message: "Invalid favorite data", error });
@@ -253,9 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/users/:userId/favorites/:type/:itemId", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const { type, itemId } = req.params;
-      await storage.removeFavorite(userId, type, parseInt(itemId));
+      await storage.removeFavorite(userId, type, itemId);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove favorite", error });
@@ -265,7 +271,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User activity routes
   app.get("/api/users/:userId/activity", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const { limit } = req.query;
       const activities = await storage.getUserActivity(
         userId,
@@ -280,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Social media account routes
   app.get("/api/users/:userId/social-accounts", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const accounts = await storage.getSocialAccounts(userId);
       res.json(accounts);
     } catch (error) {
@@ -291,12 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/social-accounts", async (req, res) => {
     try {
-      const result = insertSocialAccountSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid social account data" });
-      }
-
-      const account = await storage.connectSocialAccount(result.data);
+      const account = await storage.connectSocialAccount(req.body);
       res.json(account);
     } catch (error) {
       console.error("Error connecting social account:", error);
@@ -306,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/social-accounts/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const account = await storage.updateSocialAccount(id, req.body);
       
       if (!account) {
@@ -322,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/social-accounts/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       await storage.disconnectSocialAccount(id);
       res.json({ message: "Social account disconnected" });
     } catch (error) {
@@ -334,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Social posts routes
   app.get("/api/users/:userId/social-posts", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
       
       const posts = await storage.getSocialPosts(userId, limit);
@@ -347,7 +348,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/users/:userId/scheduled-posts", async (req, res) => {
     try {
-      const userId = parseInt(req.params.userId);
+      const userId = req.params.userId;
       const posts = await storage.getScheduledPosts(userId);
       res.json(posts);
     } catch (error) {
@@ -358,12 +359,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/social-posts", async (req, res) => {
     try {
-      const result = insertSocialPostSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid social post data" });
-      }
-
-      const post = await storage.createSocialPost(result.data);
+      const post = await storage.createSocialPost(req.body);
       res.json(post);
     } catch (error) {
       console.error("Error creating social post:", error);
@@ -373,7 +369,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/social-posts/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       const post = await storage.updateSocialPost(id, req.body);
       
       if (!post) {
@@ -389,7 +385,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete("/api/social-posts/:id", async (req, res) => {
     try {
-      const id = parseInt(req.params.id);
+      const id = req.params.id;
       await storage.deleteSocialPost(id);
       res.json({ message: "Social post deleted" });
     } catch (error) {
@@ -398,6 +394,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+
 }
