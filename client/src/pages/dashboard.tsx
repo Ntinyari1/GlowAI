@@ -111,7 +111,17 @@ async function fetchPexelsImages(productNames: string[]): Promise<Record<string,
 export default function Dashboard() {
   const skinProfile = JSON.parse(localStorage.getItem('skinProfile') || '{}');
   const userName = skinProfile.name || "GlowAI User";
-  const profileCompletion = Math.round(((Number(!!skinProfile.skinType) + Number(!!skinProfile.goals?.length) + Number(!!skinProfile.photo)) / 3) * 100);
+  const profileFields = [
+    !!skinProfile.name,
+    !!skinProfile.email,
+    !!skinProfile.age,
+    !!skinProfile.skinType,
+    Array.isArray(skinProfile.goals) && skinProfile.goals.length > 0,
+    Array.isArray(skinProfile.concerns) && skinProfile.concerns.length > 0,
+    !!skinProfile.routinePref,
+    !!skinProfile.photo
+  ];
+  const profileCompletion = Math.round((profileFields.filter(Boolean).length / profileFields.length) * 100);
   const [selectedDay, setSelectedDay] = useState(1);
   const [modalProduct, setModalProduct] = useState<Product | null>(null);
   const [notes, setNotes] = useState<string[]>(["", "", "", "", ""]);
@@ -184,11 +194,11 @@ export default function Dashboard() {
           <h2 className="text-2xl md:text-3xl font-extrabold text-glow-purple mb-3 drop-shadow">Hello, {userName}!</h2>
           <p className="text-gray-700 mb-4 text-lg">Let’s take care of your skin today.</p>
           <div className="flex items-center gap-3 mb-2 justify-center md:justify-start">
-            <span className="text-xs text-gray-500">Profile completion</span>
-            <div className="w-32 h-3 bg-glow-lavender/40 rounded-full overflow-hidden">
-              <div className="h-3 bg-gradient-to-r from-glow-pink to-glow-purple rounded-full transition-all animate-pulse" style={{ width: `${profileCompletion}%` }} />
+            <span className="text-xs text-gray-700 font-bold">Profile completion</span>
+            <div className="w-40 h-4 bg-white border-2 border-glow-purple rounded-full overflow-hidden shadow">
+              <div className="h-4 bg-gradient-to-r from-glow-pink to-glow-purple rounded-full transition-all animate-pulse" style={{ width: `${profileCompletion}%` }} />
             </div>
-            <span className="text-xs text-glow-pink font-semibold">{profileCompletion}%</span>
+            <span className="text-sm font-extrabold text-glow-purple ml-2 drop-shadow">{profileCompletion}%</span>
           </div>
         </div>
         <Link href="/profile">

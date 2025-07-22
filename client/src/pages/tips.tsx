@@ -5,30 +5,43 @@ import { Badge } from "@/components/ui/badge";
 import TipCard from "@/components/tip-card";
 import { queryClient } from "@/lib/queryClient";
 import { Sparkles } from "lucide-react";
-import { mockApi } from "@/lib/mockApi";
+// import { mockApi } from "@/lib/mockApi";
 
 export default function Tips() {
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>("all");
   const skinProfile = JSON.parse(localStorage.getItem('skinProfile') || '{}');
 
+  const fetchTips = async (skinType: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (skinType) params.append('skinType', skinType);
+    if (limit) params.append('limit', limit.toString());
+    const res = await fetch(`/api/tips?${params.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch tips');
+    return await res.json();
+  };
+
   const { data: tips, isLoading } = useQuery({
     queryKey: ['/api/tips', skinProfile.skinType],
+    queryFn: () => fetchTips(skinProfile.skinType),
     retry: false,
   });
 
   const generateTipMutation = useMutation({
     mutationFn: async (timeOfDay: string) => {
-      const tip = await mockApi.generateTip(skinProfile, timeOfDay);
-      // ... handle tip ...
+      const params = new URLSearchParams();
+      if (skinProfile.skinType) params.append('skinType', skinProfile.skinType);
+      if (timeOfDay) params.append('timeOfDay', timeOfDay);
+      const res = await fetch(`/api/daily-tip?${params.toString()}`);
+      if (!res.ok) throw new Error('Failed to generate tip');
+      const data = await res.json();
+      return data.tip;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tips'] });
     },
   });
 
-  const fetchTips = async (skinType, limit) => {
-    return await mockApi.getTips(skinType, limit);
-  };
+  
 
   const filteredTips = tips?.filter((tip: any) => 
     selectedTimeOfDay === "all" || tip.timeOfDay === selectedTimeOfDay

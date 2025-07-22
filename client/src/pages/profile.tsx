@@ -5,17 +5,25 @@ import { ArrowLeft } from "lucide-react";
 
 const skinTypes = ["Oily", "Dry", "Combination", "Normal", "Sensitive"];
 const goalsList = ["Hydration", "Anti-aging", "Brightening", "Acne Control", "Even Tone"];
+const concernsList = ["Acne", "Redness", "Sensitivity", "Dark Spots", "Wrinkles"];
 
 export default function Profile() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [age, setAge] = useState("");
   const [skinType, setSkinType] = useState("");
   const [goals, setGoals] = useState<string[]>([]);
+  const [concerns, setConcerns] = useState<string[]>([]);
+  const [routinePref, setRoutinePref] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [message, setMessage] = useState("");
 
   const handleGoalChange = (goal: string) => {
     setGoals(goals.includes(goal) ? goals.filter(g => g !== goal) : [...goals, goal]);
   };
-
+  const handleConcernChange = (concern: string) => {
+    setConcerns(concerns.includes(concern) ? concerns.filter(c => c !== concern) : [...concerns, concern]);
+  };
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const reader = new FileReader();
@@ -23,9 +31,8 @@ export default function Profile() {
       reader.readAsDataURL(e.target.files[0]);
     }
   };
-
   const handleSave = () => {
-    localStorage.setItem('skinProfile', JSON.stringify({ skinType, goals, photo }));
+    localStorage.setItem('skinProfile', JSON.stringify({ name, email, age, skinType, goals, concerns, routinePref, photo }));
     setMessage("Profile updated!");
   };
 
@@ -48,6 +55,21 @@ export default function Profile() {
         </label>
       </div>
       <form className="w-full max-w-md flex flex-col gap-6" onSubmit={e => { e.preventDefault(); handleSave(); }}>
+        {/* Name */}
+        <div>
+          <label className="block text-glow-pink font-semibold mb-1">Name</label>
+          <input type="text" value={name} onChange={e => setName(e.target.value)} className="w-full border border-glow-lavender rounded-lg p-2 bg-white/80 focus:ring-2 focus:ring-glow-pink transition" placeholder="Enter your name" />
+        </div>
+        {/* Email */}
+        <div>
+          <label className="block text-glow-pink font-semibold mb-1">Email</label>
+          <input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-glow-lavender rounded-lg p-2 bg-white/80 focus:ring-2 focus:ring-glow-pink transition" placeholder="Enter your email" />
+        </div>
+        {/* Age */}
+        <div>
+          <label className="block text-glow-pink font-semibold mb-1">Age</label>
+          <input type="number" value={age} onChange={e => setAge(e.target.value)} className="w-full border border-glow-lavender rounded-lg p-2 bg-white/80 focus:ring-2 focus:ring-glow-pink transition" placeholder="Enter your age" />
+        </div>
         {/* Skin Type */}
         <div>
           <label className="block text-glow-pink font-semibold mb-1">Skin Type</label>
@@ -64,7 +86,7 @@ export default function Profile() {
               <button
                 key={goal}
                 type="button"
-                className={`px-3 py-1 rounded-full border border-glow-purple text-glow-purple text-sm transition ${goals.includes(goal) ? 'bg-glow-purple text-white' : 'bg-white/70'}`}
+                className={`px-3 py-1 rounded-full border border-glow-purple text-glow-purple text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-glow-pink ${goals.includes(goal) ? 'bg-glow-purple text-white shadow-lg scale-105' : 'bg-white/70 hover:bg-glow-lavender/30'}`}
                 onClick={() => handleGoalChange(goal)}
               >
                 {goal}
@@ -72,6 +94,33 @@ export default function Profile() {
             ))}
           </div>
         </div>
+        {/* Concerns */}
+        <div>
+          <label className="block text-glow-pink font-semibold mb-1">Skin Concerns</label>
+          <div className="flex flex-wrap gap-2">
+            {concernsList.map(concern => (
+              <button
+                key={concern}
+                type="button"
+                className={`px-3 py-1 rounded-full border border-glow-purple text-glow-purple text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-glow-pink ${concerns.includes(concern) ? 'bg-glow-purple text-white shadow-lg scale-105' : 'bg-white/70 hover:bg-glow-lavender/30'}`}
+                onClick={() => handleConcernChange(concern)}
+              >
+                {concern}
+              </button>
+            ))}
+          </div>
+        </div>
+        {/* Routine Preference */}
+        <div>
+          <label className="block text-glow-pink font-semibold mb-1">Routine Preference</label>
+          <select value={routinePref} onChange={e => setRoutinePref(e.target.value)} className="w-full border border-glow-lavender rounded-lg p-2 bg-white/80 focus:ring-2 focus:ring-glow-pink transition">
+            <option value="">Select routine preference</option>
+            <option value="simple">Simple (3 steps)</option>
+            <option value="standard">Standard (5 steps)</option>
+            <option value="advanced">Advanced (7+ steps)</option>
+          </select>
+        </div>
+        {/* Save Button and Message */}
         <Button className="w-full glow-gradient text-white font-semibold text-lg py-2 rounded-lg shadow hover:scale-105 transition mt-2">Save Profile</Button>
         {message && <div className="text-green-600 font-semibold mt-2 text-center">{message}</div>}
       </form>
