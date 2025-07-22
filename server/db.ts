@@ -1,15 +1,19 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import mongoose from 'mongoose';
+import 'dotenv/config';
 
-neonConfig.webSocketConstructor = ws;
-
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  throw new Error('MONGODB_URI must be set in your .env file');
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+mongoose.connect(uri);
+
+mongoose.connection.on('connected', () => {
+  console.log('[db] MongoDB connection established successfully');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('[db] MongoDB connection error:', err);
+});
+
+export default mongoose;

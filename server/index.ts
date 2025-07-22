@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
 // import { log } from "./vite";
 function log(message: string) {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -12,8 +12,30 @@ function log(message: string) {
 }
 
 const app = express();
+
+// Set a permissive Content Security Policy for development (must be first!)
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "font-src 'self' https://fonts.gstatic.com https://cdn.mathpix.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.mathpix.com",
+      "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.mathpix.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "img-src 'self' data: https://*",
+      "connect-src 'self'"
+    ].join('; ')
+  );
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve static files from the 'public' directory
+import path from 'path';
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -46,7 +68,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = await registerRoutes(app);
+  await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -60,7 +82,7 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    // await setupVite(app, server); // Disabled for production build
+    // await setupVite(app, app); // Disabled for production build
   } else {
     // serveStatic(app); // Disabled for production build
   }
@@ -69,11 +91,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  app.listen(port, '127.0.0.1', () => {
+    log(`serving on http://127.0.0.1:${port}`);
   });
 })();
