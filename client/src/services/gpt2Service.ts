@@ -35,7 +35,7 @@ async function fetchTipFromHF(skinType?: string, timeOfDay?: string): Promise<st
     }
     
     const response = await axios.post(
-      'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
+      'https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1',
       {
         inputs: prompt,
         parameters: { 

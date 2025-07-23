@@ -5,5 +5,10 @@ dist
 vite.config.ts.*
 *.tar.gz
 .env
+.env.local
+.env.*.local
+client/.env
+client/.env.local
+client/.env.*.local
 # Local Netlify folder
 .netlify
