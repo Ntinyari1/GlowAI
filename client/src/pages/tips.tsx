@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import TipCard from "@/components/tip-card";
 import { queryClient } from "@/lib/queryClient";
 import { Sparkles } from "lucide-react";
+import { generateFreshTip, getDailyTip } from "@/services/gpt2Service";
 // import { mockApi } from "@/lib/mockApi";
 
 export default function Tips() {
@@ -28,13 +29,9 @@ export default function Tips() {
 
   const generateTipMutation = useMutation({
     mutationFn: async (timeOfDay: string) => {
-      const params = new URLSearchParams();
-      if (skinProfile.skinType) params.append('skinType', skinProfile.skinType);
-      if (timeOfDay) params.append('timeOfDay', timeOfDay);
-      const res = await fetch(`/api/daily-tip?${params.toString()}`);
-      if (!res.ok) throw new Error('Failed to generate tip');
-      const data = await res.json();
-      return data.tip;
+      // Use frontend GPT-2 service instead of backend API
+      const tip = await generateFreshTip(skinProfile.skinType, timeOfDay);
+      return tip;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/tips'] });
@@ -53,8 +50,13 @@ export default function Tips() {
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Today's Skincare Wisdom</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Fresh AI-generated tips delivered throughout the day, personalized for your skin's unique needs
+            Fresh AI-generated tips powered by GPT-2, personalized for your skin's unique needs
           </p>
+          <div className="mt-4">
+            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              🤖 Powered by GPT-2 AI
+            </Badge>
+          </div>
         </div>
 
         {/* Generate New Tip */}
