@@ -16,7 +16,18 @@ export const handler: Handler = async (event) => {
     }
     if (event.httpMethod === 'POST') {
       const body = event.body ? JSON.parse(event.body) : {};
-      const tipData = insertTipSchema.parse(body);
+      
+      // Extract only the expected properties for createTip
+      const tipData = {
+        content: body.content,
+        skinTypes: body.skinTypes || undefined,
+        timeOfDay: body.timeOfDay || undefined
+      };
+      
+      // First validate with the full schema
+      insertTipSchema.parse(body);
+      
+      // Then create the tip with only the expected properties
       const tip = await storage.createTip(tipData);
       return {
         statusCode: 200,

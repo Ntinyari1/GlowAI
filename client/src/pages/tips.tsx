@@ -27,20 +27,48 @@ export default function Tips() {
     retry: false,
   });
 
+  const [generatedTips, setGeneratedTips] = useState<any[]>([]);
+
   const generateTipMutation = useMutation({
     mutationFn: async (timeOfDay: string) => {
-      // Use frontend GPT-2 service instead of backend API
-      const tip = await generateFreshTip(skinProfile.skinType, timeOfDay);
-      return tip;
+      try {
+        // Use frontend GPT-2 service instead of backend API
+        const tipContent = await generateFreshTip(skinProfile.skinType, timeOfDay);
+        
+        // Create a new tip object that matches the expected format for TipCard
+        const newTip = {
+          id: Date.now(), // Use timestamp as a temporary ID
+          title: `${timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)} Tip`,
+          content: tipContent,
+          category: 'ai_generated',
+          timeOfDay: timeOfDay,
+          likes: 0,
+          isNew: true // Flag to identify newly generated tips
+        };
+        
+        return newTip;
+      } catch (error) {
+        console.error('Error generating tip:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (newTip) => {
+      // Add the new tip to our local state
+      setGeneratedTips(prev => [newTip, ...prev]);
+      // Also invalidate the query to refresh the list from the server
       queryClient.invalidateQueries({ queryKey: ['/api/tips'] });
     },
   });
 
   
 
-  const filteredTips = tips?.filter((tip: any) => 
+  // Combine server tips with locally generated tips
+  const allTips = [
+    ...(tips || []),
+    ...generatedTips
+  ];
+
+  const filteredTips = allTips.filter((tip: any) => 
     selectedTimeOfDay === "all" || tip.timeOfDay === selectedTimeOfDay
   ) || [];
 
