@@ -89,14 +89,10 @@ const mockTips = [
 
 // Add this utility function to fetch images from Pexels
 async function fetchPexelsImages(productNames: string[]): Promise<Record<string, string>> {
-  const apiKey = "YOUR_PEXELS_API_KEY"; // Replace with your Pexels API key
   const results: Record<string, string> = {};
   for (const name of productNames) {
     try {
-      const res = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(name)}&per_page=1`,
-        { headers: { Authorization: apiKey } }
-      );
+      const res = await fetch(`/api/pexels?query=${encodeURIComponent(name)}`);
       const data = await res.json();
       if (data.photos && data.photos.length > 0) {
         results[name] = data.photos[0].src.medium;

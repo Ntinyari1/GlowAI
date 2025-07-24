@@ -6,18 +6,25 @@ import TipCard from "@/components/tip-card";
 import { queryClient } from "@/lib/queryClient";
 import { Sparkles } from "lucide-react";
 import { generateFreshTip, getDailyTip } from "@/services/gpt2Service";
-// import { mockApi } from "@/lib/mockApi";
+import { X } from "lucide-react";
 
 export default function Tips() {
   const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<string>("all");
+  const [showProfile, setShowProfile] = useState(true);
   const skinProfile = JSON.parse(localStorage.getItem('skinProfile') || '{}');
 
   const fetchTips = async (skinType: string, limit?: number) => {
     const params = new URLSearchParams();
-    if (skinType) params.append('skinType', skinType);
-    if (limit) params.append('limit', limit.toString());
+    if (skinType) {
+      params.append('skinType', skinType);
+    }
+    if (limit) {
+      params.append('limit', limit.toString());
+    }
     const res = await fetch(`/api/tips?${params.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch tips');
+    if (!res.ok) {
+      throw new Error('Failed to fetch tips');
+    }
     return await res.json();
   };
 
@@ -35,8 +42,8 @@ export default function Tips() {
         // Use frontend GPT-2 service instead of backend API
         const tipContent = await generateFreshTip(skinProfile.skinType, timeOfDay);
         
-        // Create a new tip object that matches the expected format for TipCard
-        const newTip = {
+        // Create and return a new tip object that matches the expected format for TipCard
+        return {
           id: Date.now(), // Use timestamp as a temporary ID
           title: `${timeOfDay.charAt(0).toUpperCase() + timeOfDay.slice(1)} Tip`,
           content: tipContent,
@@ -45,8 +52,6 @@ export default function Tips() {
           likes: 0,
           isNew: true // Flag to identify newly generated tips
         };
-        
-        return newTip;
       } catch (error) {
         console.error('Error generating tip:', error);
         throw error;
@@ -68,9 +73,9 @@ export default function Tips() {
     ...generatedTips
   ];
 
-  const filteredTips = allTips.filter((tip: any) => 
-    selectedTimeOfDay === "all" || tip.timeOfDay === selectedTimeOfDay
-  ) || [];
+  const filteredTips = allTips.filter((tip: any) => {
+    return selectedTimeOfDay === "all" || tip.timeOfDay === selectedTimeOfDay;
+  }) || [];
 
   return (
     <div className="py-16 px-4 sm:px-6 lg:px-8">
@@ -78,14 +83,39 @@ export default function Tips() {
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Today's Skincare Wisdom</h1>
           <p className="text-gray-600 max-w-2xl mx-auto">
-            Fresh AI-generated tips powered by GPT-2, personalized for your skin's unique needs
+            Fresh AI-generated tips personalized for your skin's unique needs
           </p>
-          <div className="mt-4">
-            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-              🤖 Powered by GPT-2 AI
-            </Badge>
-          </div>
         </div>
+        {/* Skin Profile Summary */}
+        {showProfile && skinProfile && skinProfile.skinType && (
+          <div className="mb-8 p-6 bg-white/80 rounded-xl shadow text-center relative">
+            <button
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
+              aria-label="Close profile summary"
+              onClick={() => setShowProfile(false)}
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Your Skin Profile</h2>
+            <div className="mb-2"><strong>Skin Type:</strong> {skinProfile.skinType}</div>
+            {skinProfile.concerns && skinProfile.concerns.length > 0 && (
+              <div className="mb-2"><strong>Concerns:</strong> {skinProfile.concerns.join(', ')}</div>
+            )}
+        {skinProfile.age && (
+          <div className="mb-2"><strong>Age:</strong> {skinProfile.age}</div>
+        )}
+            {skinProfile.goals && skinProfile.goals.length > 0 && (
+              <div className="mb-2"><strong>Goals:</strong> {skinProfile.goals.join(', ')}</div>
+            )}
+          </div>
+        )}
+        {!showProfile && skinProfile && skinProfile.skinType && (
+          <div className="mb-8 flex justify-center">
+            <Button variant="outline" size="sm" onClick={() => setShowProfile(true)}>
+              Show Skin Profile
+            </Button>
+          </div>
+        )}
 
         {/* Generate New Tip */}
         <div className="flex flex-wrap gap-4 justify-center mb-12">

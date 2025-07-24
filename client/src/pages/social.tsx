@@ -1,45 +1,85 @@
-import { useState } from "react";
-import { Calendar, Clock, Plus, Edit, Trash2, ExternalLink } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Clock, Plus, Trash2, X, Loader2, Edit, ExternalLink } from "lucide-react";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { 
+  getConnectedAccounts, 
+  getScheduledPosts, 
+  connectAccount, 
+  disconnectAccount, 
+  schedulePost, 
+  deleteScheduledPost 
+} from "@/services/socialService";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type SocialPlatform = 'facebook' | 'instagram' | 'twitter';
 
-type SocialAccount = {
+interface SocialAccount {
+  _id?: string;
   id: string;
   platform: SocialPlatform;
   username: string;
   connected: boolean;
-  followers?: number;
+  followers: number;
   avatar?: string;
 };
 
-type ScheduledPost = {
+interface ScheduledPost {
+  _id?: string;
   id: string;
+  platform: SocialPlatform;
   content: string;
-  platform: 'facebook' | 'instagram' | 'twitter';
-  scheduledFor: Date;
-  status: 'scheduled' | 'published' | 'failed';
+  scheduledTime: string | Date;
+  status: 'scheduled' | 'posted' | 'failed';
   mediaUrl?: string;
+};
+
+const supportedPlatforms: SocialPlatform[] = ['facebook', 'instagram', 'twitter'];
+
+const getPlatformColor = (platform: SocialPlatform) => {
+  switch (platform) {
+    case 'facebook':
+      return 'bg-blue-500 text-white';
+    case 'instagram':
+      return 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
+    case 'twitter':
+      return 'bg-blue-400 text-white';
+    default:
+      return 'bg-gray-200';
+  }
+};
+
+const formatDate = (date: string | Date) => {
+  if (!date) {
+    return 'N/A';
+  }
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, 'MMM d, yyyy h:mm a');
 };
 
 export default function Social() {
   const [activeTab, setActiveTab] = useState("overview");
   const [isCreatingPost, setIsCreatingPost] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform | ''>('');
   const [postContent, setPostContent] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
+  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
 
   // Mock data for social accounts
-  const [accounts, setAccounts] = useState<SocialAccount[]>([
+  const mockAccounts: SocialAccount[] = [
     {
       id: '1',
+      _id: '1',
       platform: 'facebook',
       username: 'user_facebook',
       connected: false,
@@ -47,6 +87,7 @@ export default function Social() {
     },
     {
       id: '2',
+      _id: '2',
       platform: 'instagram',
       username: 'user_instagram',
       connected: false,
@@ -54,133 +95,183 @@ export default function Social() {
     },
     {
       id: '3',
+      _id: '3',
       platform: 'twitter',
       username: 'user_twitter',
       connected: false,
       followers: 0
     }
-  ]);
+  ];
 
-  // Mock data for scheduled posts
-  const [scheduledPosts, setScheduledPosts] = useState<ScheduledPost[]>([]);
-
-  const handleConnectAccount = (platform: SocialPlatform) => {
-    // OAuth endpoints for each platform
-    const oauthEndpoints = {
-      facebook: 'https://www.facebook.com/v12.0/dialog/oauth',
-      instagram: 'https://api.instagram.com/oauth/authorize',
-      twitter: 'https://twitter.com/i/oauth2/authorize'
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        // Try to load from backend first
+        try {
+          const [accountsData, postsData] = await Promise.all([
+            getConnectedAccounts(),
+            getScheduledPosts()
+          ]);
+          // Map backend data to local types
+          setAccounts((accountsData || mockAccounts).map(acc => ({
+            id: acc._id,
+            _id: acc._id,
+            platform: acc.platform as SocialPlatform,
+            username: acc.username,
+            connected: acc.connected,
+            followers: acc.followers || 0,
+            avatar: acc.avatar
+          })));
+          setScheduledPosts((postsData || []).map(post => ({
+            id: post._id,
+            _id: post._id,
+            platform: post.platform as SocialPlatform,
+            content: post.content,
+            scheduledTime: post.scheduledFor,
+            status: post.status === 'published' ? 'posted' : post.status,
+            mediaUrl: post.mediaUrls ? post.mediaUrls[0] : undefined
+          })));
+        } catch (error) {
+          console.warn('Using mock data due to backend error:', error);
+          // Fall back to mock data if backend fails
+          setAccounts(mockAccounts);
+          setScheduledPosts([]);
+        }
+      } catch (error) {
+        console.error('Failed to load data:', error);
+        toast.error('Failed to load social data');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    // In a real app, you would use your actual OAuth client IDs and redirect URIs
-    const clientIds = {
-      facebook: 'YOUR_FACEBOOK_APP_ID',
-      instagram: 'YOUR_INSTAGRAM_APP_ID',
-      twitter: 'YOUR_TWITTER_CLIENT_ID'
-    };
+    loadData();
+  }, []);
 
-    const redirectUris = {
-      facebook: `${window.location.origin}/auth/facebook/callback`,
-      instagram: `${window.location.origin}/auth/instagram/callback`,
-      twitter: `${window.location.origin}/auth/twitter/callback`
-    };
-
-    // OAuth parameters for each platform
-    const oauthParams = {
-      facebook: new URLSearchParams({
-        client_id: clientIds.facebook,
-        redirect_uri: redirectUris.facebook,
-        state: JSON.stringify({ platform }), // Include platform in state for callback
-        scope: 'pages_show_list,pages_read_engagement,pages_manage_posts',
-        response_type: 'code',
-        auth_type: 'rerequest',
-        display: 'popup',
-      }),
-      instagram: new URLSearchParams({
-        client_id: clientIds.instagram,
-        redirect_uri: redirectUris.instagram,
-        scope: 'user_profile,user_media',
-        response_type: 'code',
-        state: JSON.stringify({ platform }),
-      }),
-      twitter: new URLSearchParams({
-        client_id: clientIds.twitter,
-        redirect_uri: redirectUris.twitter,
-        response_type: 'code',
-        state: JSON.stringify({ platform }),
-        scope: 'tweet.read users.read offline.access',
-        code_challenge: 'challenge', // In a real app, implement PKCE
-        code_challenge_method: 'plain',
-      })
-    };
-
-    // Open the OAuth login page in a new window
-    const width = 600;
-    const height = 600;
-    const left = window.screen.width / 2 - width / 2;
-    const top = window.screen.height / 2 - height / 2;
-    
-    const authWindow = window.open(
-      `${oauthEndpoints[platform]}?${oauthParams[platform].toString()}`,
-      `${platform}OAuth`, 
-      `toolbar=no, location=no, directories=no, status=no, menubar=no, 
-      scrollbars=no, resizable=no, copyhistory=no, width=${width}, 
-      height=${height}, top=${top}, left=${left}`
-    );
-
-    // In a real app, you would listen for the OAuth callback
-    // and update the account status when authorization is complete
-    // For now, we'll simulate a successful connection after a short delay
-    const checkAuthStatus = () => {
-      // Check if authWindow was successfully opened
-      if (!authWindow || authWindow.closed) {
-        // If the window was closed or failed to open, don't proceed
+  const handleConnectAccount = async (platform: SocialPlatform) => {
+    try {
+      setIsLoading(true);
+      // Get OAuth URL from backend
+      const { url } = await connectAccount(platform);
+      if (!url || url.includes('YOUR_APP_ID') || url.includes('invalid')) {
+        toast.error('Invalid or missing app ID. Please check your provider settings.');
+        setIsLoading(false);
         return;
       }
-      
-      // Close the auth window and update the account status
-      try {
-        authWindow.close();
-        setAccounts(accounts.map(acc => 
+      // Open OAuth window for login/signup
+      const width = 600;
+      const height = 600;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+      window.open(
+        url,
+        `${platform}OAuth`,
+        `toolbar=no, location=no, directories=no, status=no, menubar=no, scrollbars=no, resizable=no, copyhistory=no, width=${width}, height=${height}, top=${top}, left=${left}`
+      );
+      toast.info('Please complete login/signup in the new window.');
+      setIsLoading(false);
+      // Do NOT mark as connected until backend confirms
+    } catch (error) {
+      console.error('Error in connect account flow:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect account';
+      toast.error(errorMessage);
+      setIsLoading(false);
+    }
+  };
+
+  const handleDisconnectAccount = async (accountId: string, platform: SocialPlatform) => {
+    try {
+      setIsLoading(true);
+      await disconnectAccount(accountId);
+      // Update local state directly for demo purposes
+      setAccounts(prevAccounts => 
+        prevAccounts.map(acc => 
           acc.platform === platform 
-            ? { ...acc, connected: true, followers: Math.floor(Math.random() * 1000) + 100 } 
+            ? { ...acc, connected: false, followers: 0 }
             : acc
-        ));
-      } catch (error) {
-        console.error('Error during OAuth flow:', error);
-      }
-    };
-    
-    // Check after a short delay
-    setTimeout(checkAuthStatus, 2000);
+        )
+      );
+      toast.success(`Successfully disconnected ${platform} account (demo mode)`);
+    } catch (error) {
+      console.error('Error disconnecting account:', error);
+      toast.error('Failed to disconnect account');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDisconnectAccount = (platform: SocialPlatform) => {
-    setAccounts(accounts.map(acc => 
-      acc.platform === platform ? { ...acc, connected: false, followers: 0 } : acc
-    ));
-  };
-
-  const handleSchedulePost = (e: React.FormEvent) => {
+  const handleSchedulePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postContent || !scheduledTime || !selectedPlatform) return;
+    
+    if (!selectedPlatform || !postContent || !scheduledTime) {
+      toast.error('Please fill in all fields');
+      return;
+    }
 
-    const newPost: ScheduledPost = {
-      id: Date.now().toString(),
-      content: postContent,
-      platform: selectedPlatform,
-      scheduledFor: new Date(scheduledTime),
-      status: 'scheduled'
-    };
+    try {
+      setIsSubmitting(true);
+      
+      // In a real app, this would be an API call
+      // const newPost = await schedulePost({
+      //   platform: selectedPlatform,
+      //   content: postContent,
+      //   scheduledTime: scheduledTime.toString()
+      // });
+      
+      // Mock response for demo
+      const newPost: ScheduledPost = {
+        id: Date.now().toString(),
+        _id: Date.now().toString(),
+        platform: selectedPlatform,
+        content: postContent,
+        scheduledTime: scheduledTime,
+        status: 'scheduled'
+      };
 
-    setScheduledPosts([...scheduledPosts, newPost]);
-    setPostContent('');
-    setScheduledTime('');
-    setSelectedPlatform('');
-    setIsCreatingPost(false);
+      setScheduledPosts(prev => [...prev, newPost]);
+      setPostContent('');
+      setScheduledTime('');
+      setSelectedPlatform('');
+      setIsCreatingPost(false);
+      toast.success('Post scheduled successfully (demo mode)');
+    } catch (error) {
+      console.error('Error scheduling post:', error);
+      toast.error('Failed to schedule post');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const formatDate = (date: Date) => {
+  const handleDeletePost = async (postId: string) => {
+    try {
+      // In a real app, this would be an API call
+      // await deleteScheduledPost(postId);
+      
+      // Mock deletion for demo
+      setScheduledPosts(prev => prev.filter(post => post.id !== postId && post._id !== postId));
+      toast.success('Post deleted successfully (demo mode)');
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      toast.error('Failed to delete post');
+    }
+  };
+
+  const getPlatformColor = (platform: string) => {
+    switch (platform) {
+      case 'facebook': return 'bg-blue-600 text-white';
+      case 'instagram': return 'bg-gradient-to-r from-pink-500 to-yellow-500 text-white';
+      case 'twitter': return 'bg-blue-400 text-white';
+      default: return 'bg-gray-300 text-gray-700';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) {
+      return 'N/A';
+    }
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
     return new Intl.DateTimeFormat('en-US', {
       month: 'short',
       day: 'numeric',
@@ -189,84 +280,92 @@ export default function Social() {
     }).format(date);
   };
 
-  const getPlatformColor = (platform: string) => {
-    switch (platform) {
-      case 'facebook': return 'bg-blue-100 text-blue-600';
-      case 'instagram': return 'bg-gradient-to-r from-pink-500 to-yellow-500 text-white';
-      case 'twitter': return 'bg-blue-400 text-white';
-      default: return 'bg-gray-100 text-gray-600';
-    }
-  };
+  const supportedPlatforms: SocialPlatform[] = ['facebook', 'instagram', 'twitter'];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading social data...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Social Media</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your social media presence and scheduled posts
-          </p>
-        </div>
-        <Dialog open={isCreatingPost} onOpenChange={setIsCreatingPost}>
-          <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600">
-              <Plus className="h-4 w-4 mr-2" /> Create Post
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Schedule New Post</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSchedulePost} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Select Platform</label>
-                <Select 
-                  onValueChange={(value: SocialPlatform) => setSelectedPlatform(value)} 
-                  value={selectedPlatform}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="facebook">Facebook</SelectItem>
-                    <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="twitter">Twitter</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Post Content</label>
-                <Textarea 
-                  placeholder="What's on your mind?"
-                  value={postContent}
-                  onChange={(e) => setPostContent(e.target.value)}
-                  rows={4}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Schedule Time</label>
-                <Input 
-                  type="datetime-local" 
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                  min={new Date().toISOString().slice(0, 16)}
-                />
-              </div>
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsCreatingPost(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600">
-                  Schedule Post
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Social Media</h1>
+        <Button onClick={() => setIsCreatingPost(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Schedule Post
+        </Button>
       </div>
+
+      <Dialog open={isCreatingPost} onOpenChange={setIsCreatingPost}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule New Post</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSchedulePost} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Platform</label>
+              <Select 
+                onValueChange={(value: SocialPlatform) => setSelectedPlatform(value)} 
+                value={selectedPlatform}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="facebook">Facebook</SelectItem>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="twitter">Twitter</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Post Content</label>
+              <Textarea 
+                placeholder="What's on your mind?"
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
+                rows={4}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Schedule Time</label>
+              <Input 
+                type="datetime-local" 
+                value={scheduledTime}
+                onChange={(e) => setScheduledTime(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                required
+              />
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsCreatingPost(false)}>
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-gradient-to-r from-pink-500 to-blue-500 hover:from-pink-600 hover:to-blue-600"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Scheduling...
+                  </>
+                ) : 'Schedule Post'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Tabs 
         value={activeTab} 
@@ -317,7 +416,7 @@ export default function Social() {
               ) : (
                 <div className="space-y-4">
                   {scheduledPosts.map((post) => (
-                    <div key={post.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div key={post._id || post.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center space-x-3">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${getPlatformColor(post.platform)}`}>
@@ -327,7 +426,7 @@ export default function Social() {
                             <p className="font-medium">{post.content.substring(0, 60)}{post.content.length > 60 ? '...' : ''}</p>
                             <div className="flex items-center text-sm text-gray-500 mt-1">
                               <Clock className="h-3 w-3 mr-1" />
-                              <span>Scheduled for {formatDate(post.scheduledFor)}</span>
+                              <span>Scheduled for {formatDate(typeof post.scheduledTime === 'string' ? post.scheduledTime : post.scheduledTime?.toString() || '')}</span>
                             </div>
                           </div>
                         </div>
@@ -339,7 +438,7 @@ export default function Social() {
                             variant="ghost" 
                             size="sm" 
                             className="text-red-500 hover:text-red-600"
-                            onClick={() => setScheduledPosts(scheduledPosts.filter(p => p.id !== post.id))}
+                            onClick={() => post._id ? handleDeletePost(post._id) : post.id ? handleDeletePost(post.id) : null}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -360,69 +459,47 @@ export default function Social() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {accounts.map((account) => (
-                  <div key={account.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        account.platform === 'facebook' ? 'bg-blue-100 text-blue-600' :
-                        account.platform === 'instagram' ? 'bg-pink-100 text-pink-600' :
-                        'bg-blue-400 text-white'
-                      }`}>
-                        <span className="font-medium">
-                          {account.platform === 'facebook' ? 'F' : account.platform === 'instagram' ? 'IG' : 'X'}
-                        </span>
+                {supportedPlatforms.map((platform) => {
+                  const account = accounts.find(acc => acc.platform === platform);
+                  return (
+                    <div key={platform} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getPlatformColor(platform)}`}>
+                          <span className="font-medium">
+                            {platform === 'facebook' ? 'F' : platform === 'instagram' ? 'IG' : 'X'}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium capitalize">{platform}</p>
+                          <p className="text-sm text-gray-500">
+                            {account && account.connected
+                              ? `${account.followers?.toLocaleString() || ''} followers`
+                              : 'Not connected'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium capitalize">{account.platform}</p>
-                        <p className="text-sm text-gray-500">
-                          {account.connected 
-                            ? `${account.followers?.toLocaleString()} followers` 
-                            : 'Not connected'}
-                        </p>
-                      </div>
-                    </div>
-                    {account.connected ? (
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
+                      {account && account.connected ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
                           className="flex items-center space-x-1"
-                          onClick={() => handleDisconnectAccount(account.platform)}
+                          onClick={() => (account.id ?? account._id) ? handleDisconnectAccount((account.id ?? account._id) as string, account.platform) : null}
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           <span>Disconnect</span>
                         </Button>
-                      </div>
-                    ) : (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleConnectAccount(account.platform)}
-                      >
-                        Connect
-                      </Button>
-                    )}
-                  </div>
-                ))}
-                
-                <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-dashed">
-                  <h3 className="font-medium text-gray-900">Add More Accounts</h3>
-                  <p className="text-sm text-gray-500 mt-1 mb-3">Connect more social media accounts to manage them in one place</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['pinterest', 'linkedin', 'tiktok'].map((platform) => (
-                      <Button 
-                        key={platform}
-                        variant="outline" 
-                        size="sm"
-                        className="capitalize"
-                        disabled
-                        title="Coming soon"
-                      >
-                        {platform}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleConnectAccount(platform)}
+                        >
+                          Connect
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

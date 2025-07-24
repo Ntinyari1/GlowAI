@@ -18,6 +18,8 @@ export default function SkinQuestionnaire({ onClose, onComplete }: SkinQuestionn
   const [concerns, setConcerns] = useState<string[]>([]);
   const [age, setAge] = useState<string>("");
   const [goals, setGoals] = useState<string[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [profile, setProfile] = useState<SkinProfile | null>(null);
 
   const handleConcernChange = (concern: string, checked: boolean) => {
     if (checked) {
@@ -36,20 +38,18 @@ export default function SkinQuestionnaire({ onClose, onComplete }: SkinQuestionn
   };
 
   const handleComplete = () => {
-    const profile: SkinProfile = {
+    const result: SkinProfile = {
       skinType: skinType as any,
       concerns,
       age: age ? parseInt(age) : undefined,
       goals,
     };
-    
-    // Store in localStorage for now
-    localStorage.setItem('skinProfile', JSON.stringify(profile));
-    
+    localStorage.setItem('skinProfile', JSON.stringify(result));
+    setProfile(result);
+    setShowResults(true);
     if (onComplete) {
-      onComplete(profile);
+      onComplete(result);
     }
-    onClose();
   };
 
   const canProceed = () => {
@@ -78,160 +78,176 @@ export default function SkinQuestionnaire({ onClose, onComplete }: SkinQuestionn
             <X className="w-4 h-4" />
           </Button>
         </CardHeader>
-        
         <CardContent className="space-y-6">
-          <p className="text-gray-600 text-center">
-            Answer a few questions to get personalized skincare recommendations
-          </p>
-
-          {/* Progress Bar */}
-          <div className="w-full bg-gray-200 rounded-full h-2">
-            <div 
-              className="glow-gradient h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentStep / 4) * 100}%` }}
-            />
-          </div>
-
-          {/* Step 1: Skin Type */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                How does your skin feel after cleansing?
-              </h3>
-              <RadioGroup value={skinType} onValueChange={setSkinType}>
-                <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                  <RadioGroupItem value="dry" id="dry" />
-                  <Label htmlFor="dry" className="cursor-pointer">Tight and dry</Label>
-                </div>
-                <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                  <RadioGroupItem value="normal" id="normal" />
-                  <Label htmlFor="normal" className="cursor-pointer">Comfortable and balanced</Label>
-                </div>
-                <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                  <RadioGroupItem value="combination" id="combination" />
-                  <Label htmlFor="combination" className="cursor-pointer">Oily in some areas, dry in others</Label>
-                </div>
-                <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                  <RadioGroupItem value="oily" id="oily" />
-                  <Label htmlFor="oily" className="cursor-pointer">Still oily and greasy</Label>
-                </div>
-                <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                  <RadioGroupItem value="sensitive" id="sensitive" />
-                  <Label htmlFor="sensitive" className="cursor-pointer">Easily irritated or reactive</Label>
-                </div>
-              </RadioGroup>
-            </div>
-          )}
-
-          {/* Step 2: Concerns */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                What are your main skin concerns?
-              </h3>
-              <div className="space-y-3">
-                {[
-                  'Acne and breakouts',
-                  'Fine lines and aging',
-                  'Dark spots and hyperpigmentation',
-                  'Sensitivity and redness',
-                  'Large pores',
-                  'Dryness and dehydration',
-                  'Dullness'
-                ].map(concern => (
-                  <div key={concern} className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                    <Checkbox
-                      id={concern}
-                      checked={concerns.includes(concern)}
-                      onCheckedChange={(checked) => handleConcernChange(concern, checked as boolean)}
-                    />
-                    <Label htmlFor={concern} className="cursor-pointer">{concern}</Label>
-                  </div>
-                ))}
+          {showResults && profile ? (
+            <div className="space-y-6 text-center">
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">Your Personalized Skin Profile</h3>
+              <div className="mb-4">
+                <div className="mb-2"><strong>Skin Type:</strong> {profile.skinType}</div>
+                <div className="mb-2"><strong>Concerns:</strong> {profile.concerns.join(", ")}</div>
+                <div className="mb-2"><strong>Age:</strong> {profile.age}</div>
+                <div className="mb-2"><strong>Goals:</strong> {profile.goals.join(", ")}</div>
               </div>
+              <Button className="glow-gradient text-white" onClick={() => window.location.href = '/tips'}>
+                View Personalized Tips
+              </Button>
             </div>
-          )}
+          ) : (
+            <>
+              <p className="text-gray-600 text-center">
+                Answer a few questions to get personalized skincare recommendations
+              </p>
 
-          {/* Step 3: Age */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                What's your age range?
-              </h3>
-              <RadioGroup value={age} onValueChange={setAge}>
-                {[
-                  { value: '18', label: '18-25' },
-                  { value: '26', label: '26-35' },
-                  { value: '36', label: '36-45' },
-                  { value: '46', label: '46-55' },
-                  { value: '56', label: '55+' }
-                ].map(({ value, label }) => (
-                  <div key={value} className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                    <RadioGroupItem value={value} id={value} />
-                    <Label htmlFor={value} className="cursor-pointer">{label}</Label>
-                  </div>
-                ))}
-              </RadioGroup>
-            </div>
-          )}
-
-          {/* Step 4: Goals */}
-          {currentStep === 4 && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                What are your skincare goals?
-              </h3>
-              <div className="space-y-3">
-                {[
-                  'Clear, acne-free skin',
-                  'Anti-aging and prevention',
-                  'Even skin tone',
-                  'Hydrated, plump skin',
-                  'Reduced sensitivity',
-                  'Minimized pores',
-                  'Glowing, radiant skin'
-                ].map(goal => (
-                  <div key={goal} className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
-                    <Checkbox
-                      id={goal}
-                      checked={goals.includes(goal)}
-                      onCheckedChange={(checked) => handleGoalChange(goal, checked as boolean)}
-                    />
-                    <Label htmlFor={goal} className="cursor-pointer">{goal}</Label>
-                  </div>
-                ))}
+              {/* Progress Bar */}
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="glow-gradient h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(currentStep / 4) * 100}%` }}
+                />
               </div>
-            </div>
-          )}
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-              disabled={currentStep === 1}
-            >
-              Previous
-            </Button>
-            
-            {currentStep < 4 ? (
-              <Button
-                className="glow-gradient text-white"
-                onClick={() => setCurrentStep(currentStep + 1)}
-                disabled={!canProceed()}
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                className="glow-gradient text-white"
-                onClick={handleComplete}
-                disabled={!canProceed()}
-              >
-                Get My Results
-              </Button>
-            )}
-          </div>
+              {/* Step 1: Skin Type */}
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    How does your skin feel after cleansing?
+                  </h3>
+                  <RadioGroup value={skinType} onValueChange={setSkinType}>
+                    <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                      <RadioGroupItem value="dry" id="dry" />
+                      <Label htmlFor="dry" className="cursor-pointer">Tight and dry</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                      <RadioGroupItem value="normal" id="normal" />
+                      <Label htmlFor="normal" className="cursor-pointer">Comfortable and balanced</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                      <RadioGroupItem value="combination" id="combination" />
+                      <Label htmlFor="combination" className="cursor-pointer">Oily in some areas, dry in others</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                      <RadioGroupItem value="oily" id="oily" />
+                      <Label htmlFor="oily" className="cursor-pointer">Still oily and greasy</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                      <RadioGroupItem value="sensitive" id="sensitive" />
+                      <Label htmlFor="sensitive" className="cursor-pointer">Easily irritated or reactive</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* Step 2: Concerns */}
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    What are your main skin concerns?
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      'Acne and breakouts',
+                      'Fine lines and aging',
+                      'Dark spots and hyperpigmentation',
+                      'Sensitivity and redness',
+                      'Large pores',
+                      'Dryness and dehydration',
+                      'Dullness'
+                    ].map(concern => (
+                      <div key={concern} className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                        <Checkbox
+                          id={concern}
+                          checked={concerns.includes(concern)}
+                          onCheckedChange={(checked) => handleConcernChange(concern, checked as boolean)}
+                        />
+                        <Label htmlFor={concern} className="cursor-pointer">{concern}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Age */}
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    What's your age range?
+                  </h3>
+                  <RadioGroup value={age} onValueChange={setAge}>
+                    {[
+                      { value: '18', label: '18-25' },
+                      { value: '26', label: '26-35' },
+                      { value: '36', label: '36-45' },
+                      { value: '46', label: '46-55' },
+                      { value: '56', label: '55+' }
+                    ].map(({ value, label }) => (
+                      <div key={value} className="flex items-center space-x-2 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                        <RadioGroupItem value={value} id={value} />
+                        <Label htmlFor={value} className="cursor-pointer">{label}</Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+              )}
+
+              {/* Step 4: Goals */}
+              {currentStep === 4 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    What are your skincare goals?
+                  </h3>
+                  <div className="space-y-3">
+                    {[
+                      'Clear, acne-free skin',
+                      'Anti-aging and prevention',
+                      'Even skin tone',
+                      'Hydrated, plump skin',
+                      'Reduced sensitivity',
+                      'Minimized pores',
+                      'Glowing, radiant skin'
+                    ].map(goal => (
+                      <div key={goal} className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-xl hover:border-glow-pink cursor-pointer transition-colors">
+                        <Checkbox
+                          id={goal}
+                          checked={goals.includes(goal)}
+                          onCheckedChange={(checked) => handleGoalChange(goal, checked as boolean)}
+                        />
+                        <Label htmlFor={goal} className="cursor-pointer">{goal}</Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation Buttons */}
+              <div className="flex justify-between pt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                  disabled={currentStep === 1}
+                >
+                  Previous
+                </Button>
+                
+                {currentStep < 4 ? (
+                  <Button
+                    className="glow-gradient text-white"
+                    onClick={() => setCurrentStep(currentStep + 1)}
+                    disabled={!canProceed()}
+                  >
+                    Next
+                  </Button>
+                ) : (
+                  <Button
+                    className="glow-gradient text-white"
+                    onClick={handleComplete}
+                    disabled={!canProceed()}
+                  >
+                    Get My Results
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
