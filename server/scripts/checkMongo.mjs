@@ -1,7 +1,11 @@
-const { MongoClient } = require('mongodb');
+// ESM version of MongoDB check script
+import { MongoClient } from 'mongodb';
 
-async function main() {
-  const uri = 'mongodb+srv://ntinyariyvonne823:5j8sJPpv7sqsl2g4@cluster1.9zo3usy.mongodb.net/?retryWrites=true&w=majority&appName=Cluster1';
+// MongoDB connection string
+const uri = 'mongodb+srv://ntinyariyvonne823:5j8sJPpv7sqsl2g4@cluster1.9zo3usy.mongodb.net/GlowAI?retryWrites=true&w=majority';
+
+async function run() {
+  console.log('🔍 Starting MongoDB check...');
   const client = new MongoClient(uri);
   
   try {
@@ -9,24 +13,23 @@ async function main() {
     await client.connect();
     console.log('✅ Connected to MongoDB');
     
-    const db = client.db('GlowAI');
+    // Get the database
+    const db = client.db();
     
-    // List all collections
+    // List collections
     const collections = await db.listCollections().toArray();
     console.log('\n📋 Collections:');
     console.table(collections.map(c => ({ name: c.name, type: c.type })));
     
     // Check products collection
     const products = db.collection('products');
-    
-    // Count total products
     const count = await products.countDocuments();
     console.log(`\n📊 Total products: ${count}`);
     
-    // Get sample products
-    const sampleProducts = await products.find().limit(5).toArray();
+    // Get first 3 products
+    const sample = await products.find().limit(3).toArray();
     console.log('\n🔍 Sample products:');
-    sampleProducts.forEach((p, i) => {
+    sample.forEach((p, i) => {
       console.log(`\nProduct ${i + 1}:`);
       console.log(`- Name: ${p.name || p.product_name || 'N/A'}`);
       console.log(`- Brand: ${p.brand || p.brands || 'N/A'}`);
@@ -34,19 +37,8 @@ async function main() {
       console.log(`- Categories: ${p.categories ? p.categories.slice(0, 50) + '...' : 'N/A'}`);
     });
     
-    // Test pagination
-    console.log('\n🔢 Testing pagination (page 1, 24 items):');
-    const page1 = await products.find()
-      .skip(0)
-      .limit(24)
-      .toArray();
-    console.log(`Fetched ${page1.length} products`);
-    
-    return { count, sample: sampleProducts };
-    
   } catch (err) {
     console.error('❌ Error:', err);
-    throw err;
   } finally {
     await client.close();
     console.log('\n🔌 Disconnected from MongoDB');
@@ -54,7 +46,4 @@ async function main() {
 }
 
 // Run the script
-console.log('🔍 Starting database check...');
-main()
-  .then(() => console.log('✅ Check completed successfully'))
-  .catch(() => process.exit(1));
+run().catch(console.error);
