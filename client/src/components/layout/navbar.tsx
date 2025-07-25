@@ -52,6 +52,16 @@ export default function Navbar() {
               Products
             </Link>
             <Link 
+              href="/blog" 
+              className={`transition-colors ${
+                isActive('/blog') 
+                  ? 'text-glow-pink font-medium' 
+                  : 'text-gray-700 hover:text-glow-pink'
+              }`}
+            >
+              Blog
+            </Link>
+            <Link 
               href="/routine" 
               className={`transition-colors ${
                 isActive('/routine') 
