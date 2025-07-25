@@ -19,6 +19,7 @@
     "moduleResolution": "node",
     "baseUrl": ".",
     "types": ["node", "express"],
+    // Removed allowImportingTsExtensions to fix config error
     "paths": {
       "@shared/*": ["../shared/*"]
     }
