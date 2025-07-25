@@ -1,52 +1,94 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { usePWAInstallPrompt } from '../hooks/usePWAInstallPrompt';
 import { Button } from './ui/button';
-import { Download, X } from 'lucide-react';
+import { Download, X, Smartphone } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export const PWAInstallButton: React.FC = () => {
-  const { showInstallPrompt, showIOSInstructions, handleInstallClick, isStandalone } = usePWAInstallPrompt();
+  const { 
+    showInstallPrompt, 
+    showIOSInstructions, 
+    handleInstallClick, 
+    isStandalone, 
+    isAndroid,
+    isIOS
+  } = usePWAInstallPrompt();
   const [isVisible, setIsVisible] = React.useState(true);
+  const [isDelayed, setIsDelayed] = React.useState(true);
 
-  // Don't show anything if not on mobile or if already in standalone mode
-  if (isStandalone || (!showInstallPrompt && !showIOSInstructions) || !isVisible) {
+  // Delay showing the button to prevent flashing on page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsDelayed(false);
+    }, 3000); // 3 second delay
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Don't show anything if not on mobile, already in standalone mode, or if dismissed
+  if (isStandalone || (!showInstallPrompt && !showIOSInstructions) || !isVisible || isDelayed) {
     return null;
   }
 
+  // Check if user has previously dismissed the prompt
+  useEffect(() => {
+    const wasDismissed = localStorage.getItem('pwaInstallDismissed');
+    if (wasDismissed === 'true') {
+      setIsVisible(false);
+    }
+  }, []);
+
   const handleDismiss = () => {
     setIsVisible(false);
-    // Optionally save to localStorage to prevent showing again
     localStorage.setItem('pwaInstallDismissed', 'true');
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-xs">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700">
+    <div className="fixed bottom-4 right-4 z-50 max-w-xs animate-fade-in-up">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 border border-gray-200 dark:border-gray-700 transform transition-all duration-300 hover:shadow-2xl">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="font-medium text-gray-900 dark:text-white">Install GlowAI</h3>
+          <div className="flex items-center">
+            <div className="bg-gradient-to-br from-pink-400 to-purple-500 p-2 rounded-lg mr-3">
+              <Smartphone className="h-5 w-5 text-white" />
+            </div>
+            <h3 className="font-semibold text-gray-900 dark:text-white text-base">
+              {isIOS ? 'Add to Home Screen' : 'Install GlowAI'}
+            </h3>
+          </div>
           <button
             onClick={handleDismiss}
-            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300 p-1 -mt-1 -mr-1"
             aria-label="Dismiss"
           >
-            <X className="h-4 w-4" />
+            <X className="h-5 w-5" />
           </button>
         </div>
         
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 pl-11">
           {showIOSInstructions 
             ? 'Install this app on your iPhone: tap the share icon and then "Add to Home Screen"' 
-            : 'Add GlowAI to your home screen for a better experience'}
+            : isAndroid
+              ? 'Get the best experience by installing the app on your device.'
+              : 'Add GlowAI to your home screen for a better experience'}
         </p>
         
-        {showInstallPrompt && (
-          <Button
-            onClick={handleInstallClick}
-            className="w-full flex items-center justify-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Install App
-          </Button>
+        {(showInstallPrompt || showIOSInstructions) && (
+          <div className="flex flex-col space-y-2">
+            <Button
+              onClick={showInstallPrompt ? handleInstallClick : undefined}
+              className={`w-full flex items-center justify-center gap-2 ${
+                isAndroid ? 'bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700' : ''
+              }`}
+              size={isAndroid ? 'default' : 'sm'}
+            >
+              <Download className="h-4 w-4" />
+              {isAndroid ? 'Install Now' : 'Add to Home Screen'}
+            </Button>
+            {isAndroid && (
+              <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                No app store required - installs in seconds
+              </p>
+            )}
+          </div>
         )}
         
         {showIOSInstructions && (

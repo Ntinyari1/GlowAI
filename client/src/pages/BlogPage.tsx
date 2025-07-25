@@ -139,7 +139,7 @@ export function BlogPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="container mx-auto py-8 px-4 mb-24 md:mb-0">
       {selectedPost ? (
         <div>
           <Button 

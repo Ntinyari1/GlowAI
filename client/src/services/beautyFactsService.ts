@@ -76,6 +76,9 @@ interface SearchOptions {
   page?: number;
   pageSize?: number;
   useMock?: boolean;
+  skinType?: string;
+  concerns?: string[];
+  goals?: string[];
 }
 
 export const searchProducts = async ({

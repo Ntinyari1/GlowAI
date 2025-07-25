@@ -37,7 +37,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="relative min-h-[80vh] flex flex-col justify-center items-center px-2 bg-gradient-to-br from-glow-rose to-glow-lavender">
+    <div className="relative min-h-[80vh] flex flex-col justify-center items-center px-2 bg-gradient-to-br from-glow-rose to-glow-lavender mb-24 md:mb-0">
       <Link href="/dashboard" className="absolute top-6 left-6 group">
         <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/80 border border-glow-purple text-glow-purple shadow hover:bg-glow-lavender/30 hover:text-glow-pink transition">
           <ArrowLeft className="w-6 h-6" />

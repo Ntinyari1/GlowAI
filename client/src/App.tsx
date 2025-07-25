@@ -14,6 +14,7 @@ import Profile from "./pages/profile";
 import BlogPage from "./pages/BlogPage";
 import CreatePost from "./components/blog/CreatePost";
 import Navbar from "@/components/layout/navbar";
+import BottomNav from "@/components/layout/BottomNav";
 import { PWAInstallButton } from "@/components/PWAInstallButton";
 
 function Router() {
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/blog/:id" component={BlogPage} />
         <Route component={NotFound} />
       </Switch>
+      <BottomNav />
     </div>
   );
 }

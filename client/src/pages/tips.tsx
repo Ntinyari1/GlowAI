@@ -78,7 +78,7 @@ export default function Tips() {
   }) || [];
 
   return (
-    <div className="py-16 px-4 sm:px-6 lg:px-8">
+    <div className="py-16 px-4 sm:px-6 lg:px-8 mb-24 md:mb-0">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">Today's Skincare Wisdom</h1>

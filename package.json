@@ -11,7 +11,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "mobile": "node scripts/generate-qr.mjs && vite --host"
   },
   "dependencies": {
     "@google/genai": "^1.7.0",
@@ -110,6 +111,8 @@
     "drizzle-kit": "^0.18.1",
     "esbuild": "^0.25.0",
     "postcss": "^8.4.47",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
