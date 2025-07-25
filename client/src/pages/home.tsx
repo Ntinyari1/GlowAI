@@ -10,7 +10,7 @@ export default function Home() {
   const [activeFeature, setActiveFeature] = useState<'tips' | 'reviews' | 'glow'>('tips');
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen mb-24 md:mb-0">
       {/* Hero Section */}
       <section className="relative py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">

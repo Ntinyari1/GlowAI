@@ -204,16 +204,16 @@ export default function Dashboard() {
       {/* Special for you - Product Grid */}
       <div className="w-full mx-auto animate-slide-in-up">
         <h3 className="text-lg font-bold text-glow-purple mb-4 ml-2">Special for you</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-center items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 justify-center items-start">
           {mockProducts.map((product) => {
             const mainImage = product.overrideImage || pexelsImages[product.name];
             return (
-              <div key={product.id} className="w-64 max-w-xs bg-white/80 rounded-2xl shadow-xl p-4 flex flex-col items-center hover:scale-105 hover:shadow-2xl transition-all duration-200 border border-glow-lavender/20 relative">
+              <div key={product.id} className="w-full max-w-full sm:w-64 sm:max-w-xs bg-white/80 rounded-2xl shadow-xl p-3 md:p-4 flex flex-col items-center hover:scale-105 hover:shadow-2xl transition-all duration-200 border border-glow-lavender/20 relative">
                 {mainImage ? (
                   <img
                     src={mainImage}
                     alt={product.name}
-                    className="h-40 w-40 object-contain drop-shadow rounded-xl mb-2"
+                    className="h-32 w-32 md:h-40 md:w-40 object-contain drop-shadow rounded-xl mb-2"
                   />
                 ) : (
                   <div className="h-24 w-full flex items-center justify-center bg-glow-lavender/30 rounded-xl mb-2 text-xs text-gray-400">No image</div>
@@ -273,47 +273,47 @@ export default function Dashboard() {
           ))}
         </div>
         {/* Unified Routine Card - Two Columns */}
-        <div className="w-full max-w-5xl mx-auto bg-white/90 rounded-xl shadow-2xl p-4 md:p-6 flex flex-col md:flex-row items-start gap-4 md:gap-8 border border-glow-lavender/30 animate-fade-in">
-          {/* Left Column: Product image, name, step, tip */}
-          <div className="flex flex-col items-start justify-center gap-3 w-full md:w-1/2">
-            <div className="w-24 h-24 rounded-lg border-2 border-glow-lavender bg-white/70 flex items-center justify-center shadow overflow-hidden">
-              <img src={mockRoutine[selectedDay].product.overrideImage} alt={mockRoutine[selectedDay].product.name} className="w-20 h-20 object-contain" />
-            </div>
-            <div className="text-base font-extrabold text-glow-purple text-left">{mockRoutine[selectedDay].product.name}</div>
-            <Badge className="bg-glow-pink text-white">Step {mockRoutine[selectedDay].product.step}</Badge>
-            <div className="flex items-center gap-2 text-xs text-glow-purple bg-glow-lavender/30 rounded px-2 py-1 text-left shadow-sm">
-              <StickyNote className="w-4 h-4 text-glow-pink" />
-              <span className="font-semibold">Tip:</span> {mockTips[selectedDay % mockTips.length]}
-            </div>
-          </div>
-          {/* Right Column: Brand, desc, actions, note */}
-          <div className="flex flex-col items-start justify-center gap-2 w-full md:w-1/2">
-            <div className="text-sm font-bold text-glow-purple">{mockRoutine[selectedDay].product.brand}</div>
-            <div className="text-xs text-gray-600 mb-1 text-left">{mockRoutine[selectedDay].product.description}</div>
-            {/* Actions and notes can be added here if needed */}
-          </div>
+        <div className="w-full max-w-5xl mx-auto bg-white/90 rounded-xl shadow-2xl p-3 md:p-6 flex flex-col md:flex-row items-start gap-3 md:gap-8 border border-glow-lavender/30 animate-fade-in">
+        {/* Left Column: Product image, name, step, tip */}
+        <div className="flex flex-col items-start justify-center gap-2 md:gap-3 w-full md:w-1/2">
+        <div className="w-20 h-20 md:w-24 md:h-24 rounded-lg border-2 border-glow-lavender bg-white/70 flex items-center justify-center shadow overflow-hidden">
+        <img src={mockRoutine[selectedDay].product.overrideImage} alt={mockRoutine[selectedDay].product.name} className="w-16 h-16 md:w-20 md:h-20 object-contain" />
+        </div>
+        <div className="text-base font-extrabold text-glow-purple text-left">{mockRoutine[selectedDay].product.name}</div>
+        <Badge className="bg-glow-pink text-white">Step {mockRoutine[selectedDay].product.step}</Badge>
+        <div className="flex items-center gap-2 text-xs text-glow-purple bg-glow-lavender/30 rounded px-2 py-1 text-left shadow-sm">
+        <StickyNote className="w-4 h-4 text-glow-pink" />
+        <span className="font-semibold">Tip:</span> {mockTips[selectedDay % mockTips.length]}
+        </div>
+        </div>
+        {/* Right Column: Brand, desc, actions, note */}
+        <div className="flex flex-col items-start justify-center gap-1 md:gap-2 w-full md:w-1/2">
+        <div className="text-sm font-bold text-glow-purple">{mockRoutine[selectedDay].product.brand}</div>
+        <div className="text-xs text-gray-600 mb-1 text-left">{mockRoutine[selectedDay].product.description}</div>
+        {/* Actions and notes can be added here if needed */}
+        </div>
         </div>
       </div>
       {/* Stats Row - glassy cards */}
-      <div className="w-full mx-auto flex flex-col md:flex-row gap-4 justify-between mb-2 animate-fade-in">
-        <div className="flex-1 bg-white/80 rounded-2xl shadow-xl flex flex-col items-center py-6 border border-glow-lavender/20 animate-bounce-in">
+      <div className="w-full mx-auto flex flex-col md:flex-row gap-2 md:gap-4 justify-between mb-2 animate-fade-in">
+        <div className="flex-1 bg-white/80 rounded-2xl shadow-xl flex flex-col items-center py-4 md:py-6 border border-glow-lavender/20 animate-bounce-in">
           <CheckCircle className="text-green-500 w-8 h-8 mb-2" />
-          <div className="text-2xl font-bold text-gray-800">{userStats.tipsCompleted}</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-800">{userStats.tipsCompleted}</div>
           <div className="text-xs text-gray-500">Tips Completed</div>
         </div>
-        <div className="flex-1 bg-white/80 rounded-2xl shadow-xl flex flex-col items-center py-6 border border-glow-lavender/20 animate-bounce-in">
+        <div className="flex-1 bg-white/80 rounded-2xl shadow-xl flex flex-col items-center py-4 md:py-6 border border-glow-lavender/20 animate-bounce-in">
           <Star className="text-blue-500 w-8 h-8 mb-2" />
-          <div className="text-2xl font-bold text-gray-800">{userStats.productsReviewed}</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-800">{userStats.productsReviewed}</div>
           <div className="text-xs text-gray-500">Products Reviewed</div>
         </div>
-        <div className="flex-1 bg-white/80 rounded-2xl shadow-xl flex flex-col items-center py-6 border border-glow-lavender/20 animate-bounce-in">
+        <div className="flex-1 bg-white/80 rounded-2xl shadow-xl flex flex-col items-center py-4 md:py-6 border border-glow-lavender/20 animate-bounce-in">
           <Calendar className="text-purple-500 w-8 h-8 mb-2" />
-          <div className="text-2xl font-bold text-gray-800">{userStats.dayStreak}</div>
+          <div className="text-xl md:text-2xl font-bold text-gray-800">{userStats.dayStreak}</div>
           <div className="text-xs text-gray-500">Day Streak</div>
         </div>
       </div>
       {/* Recent Activity - timeline style */}
-      <div className="w-full mx-auto animate-fade-in mb-8">
+      <div className="w-full mx-auto animate-fade-in mb-24 md:mb-8">
         <h3 className="text-lg font-bold text-glow-purple mb-4 ml-2">Recent Activity</h3>
         <div className="bg-white/80 rounded-2xl shadow-xl p-6 space-y-4 border border-glow-lavender/20">
           {recentActivities.map((activity, index) => {
@@ -336,24 +336,24 @@ export default function Dashboard() {
         </div>
       </div>
       {/* Bottom Navigation Bar (Mobile Only) - floating, rounded, shadow */}
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white/90 backdrop-blur-md border border-glow-lavender/40 shadow-2xl flex justify-around items-center h-16 w-[95vw] max-w-md rounded-2xl md:hidden animate-fade-in-up">
-        <Link href="/dashboard" className="flex flex-col items-center text-glow-purple hover:text-glow-pink transition">
+      <nav className="fixed bottom-0 left-0 w-full z-40 bg-white/95 backdrop-blur-md border-t border-glow-lavender/40 shadow-2xl flex justify-around items-center h-16 md:hidden animate-fade-in-up">
+        <Link href="/dashboard" className="flex flex-col items-center flex-1 py-2 text-glow-purple hover:text-glow-pink transition">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8m5 0a2 2 0 002-2V7a2 2 0 00-2-2h-3.5a2 2 0 00-2 2v1" /></svg>
           <span className="text-xs">Home</span>
         </Link>
-        <Link href="/routine" className="flex flex-col items-center text-glow-purple hover:text-glow-pink transition">
+        <Link href="/routine" className="flex flex-col items-center flex-1 py-2 text-glow-purple hover:text-glow-pink transition">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17l4 4 4-4m0-5V3m-8 9v6a2 2 0 002 2h4a2 2 0 002-2v-6" /></svg>
           <span className="text-xs">Routine</span>
         </Link>
-        <Link href="/tips" className="flex flex-col items-center text-glow-purple hover:text-glow-pink transition">
+        <Link href="/tips" className="flex flex-col items-center flex-1 py-2 text-glow-purple hover:text-glow-pink transition">
           <Lightbulb className="w-6 h-6 mb-1" />
           <span className="text-xs">Tips</span>
         </Link>
-        <Link href="/products" className="flex flex-col items-center text-glow-purple hover:text-glow-pink transition">
+        <Link href="/products" className="flex flex-col items-center flex-1 py-2 text-glow-purple hover:text-glow-pink transition">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 21V7a2 2 0 00-2-2H6a2 2 0 00-2 2v14m16 0H4" /></svg>
           <span className="text-xs">Products</span>
         </Link>
-        <Link href="/profile" className="flex flex-col items-center text-glow-purple hover:text-glow-pink transition">
+        <Link href="/profile" className="flex flex-col items-center flex-1 py-2 text-glow-purple hover:text-glow-pink transition">
           <User className="w-6 h-6 mb-1" />
           <span className="text-xs">Profile</span>
         </Link>

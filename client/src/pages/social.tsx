@@ -292,7 +292,7 @@ export default function Social() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mb-24 md:mb-0">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Social Media</h1>
         <Button onClick={() => setIsCreatingPost(true)}>
@@ -387,10 +387,19 @@ export default function Social() {
               <p className="text-gray-600">
                 Track your social media performance and engagement metrics here.
               </p>
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-500">
-                  Analytics and insights coming soon!
-                </p>
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Connected Accounts</span>
+                  <span className="font-semibold">{accounts.filter(acc => acc.connected).length}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Total Followers</span>
+                  <span className="font-semibold">{accounts.filter(acc => acc.connected).reduce((sum, acc) => sum + (acc.followers || 0), 0)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Scheduled Posts</span>
+                  <span className="font-semibold">{scheduledPosts.length}</span>
+                </div>
               </div>
             </CardContent>
           </Card>

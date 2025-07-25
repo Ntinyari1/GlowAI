@@ -5,18 +5,22 @@ export const usePWAInstallPrompt = () => {
   const [isInstallable, setIsInstallable] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
 
   useEffect(() => {
     // Check if the app is running in standalone mode
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsStandalone(true);
-    }
+    const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                         (window.navigator as any).standalone === true;
+    setIsStandalone(isInStandalone);
 
-    // Check if the device is iOS
+    // Check device type
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIPad = /ipad|ipod|iphone/.test(userAgent);
     const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
-    setIsIOS(isIPad || (isSafari && !window.navigator.standalone));
+    const isAndroidDevice = /android/.test(userAgent);
+    
+    setIsIOS(isIPad || (isSafari && !(window.navigator as any).standalone));
+    setIsAndroid(isAndroidDevice);
 
     // Handle beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -60,14 +64,22 @@ export const usePWAInstallPrompt = () => {
     setIsInstallable(false);
   };
 
-  const showInstallPrompt = isInstallable && !isStandalone;
-  const showIOSInstructions = isIOS && !isStandalone;
+  // On Android, we can show the install prompt if:
+  // 1. The beforeinstallprompt event was fired (isInstallable is true)
+  // 2. The app is not already installed/standalone
+  // On iOS, we show installation instructions
+  // On other platforms, we show the install prompt if available
+  const showInstallPrompt = isInstallable && !isStandalone && (isAndroid || (!isIOS && !isAndroid));
+  const showIOSInstructions = isIOS && !isStandalone && !isAndroid;
 
   return {
     showInstallPrompt,
     showIOSInstructions,
     handleInstallClick,
-    isStandalone
+    isStandalone,
+    isInstallable,
+    isAndroid,
+    isIOS,
   };
 };
 
